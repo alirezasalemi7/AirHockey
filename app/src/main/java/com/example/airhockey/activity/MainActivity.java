@@ -49,6 +49,6 @@ public class MainActivity extends AppCompatActivity {
         int width = getWindowManager().getDefaultDisplay().getWidth();
         int height = getWindowManager().getDefaultDisplay().getHeight();
         gameLayout = findViewById(R.id.board_layout);
-        setNewPositionForStriker(width,height,true);
+        setNewPositionForStriker(width,height,false);
     }
 }

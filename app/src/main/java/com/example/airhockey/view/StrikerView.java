@@ -25,7 +25,12 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
 
     public StrikerView(@NonNull Context context, int width, int height, boolean player) {
         super(context);
-        this.setImageResource(R.drawable.img_player);
+        if (player){
+            this.setImageResource(R.drawable.img_player);
+        }
+        else {
+            this.setImageResource(R.drawable.img_com);
+        }
         this.width = width;
         this.height = height;
         radius = (int) (radiusFactor * width);
@@ -35,11 +40,6 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         Log.i("sizeX", ""+width);
         Log.i("sizeY", ""+height);
 
-    }
-
-    public StrikerView(@NonNull Context context, @Nullable AttributeSet attrs) {
-        super(context, attrs);
-        this.setImageResource(R.drawable.img_player);
     }
 
     private float calculatePosX(float x){
