@@ -17,18 +17,26 @@ public class MainActivity extends AppCompatActivity {
     StrikerView strikerView;
     ConstraintLayout gameLayout;
 
-    void setNewPositionForStriker(int width, int height){
+    void setNewPositionForStriker(int width, int height, boolean player){
         if (strikerView != null){
             gameLayout.removeView(strikerView);
         }
-        strikerView = new StrikerView(this,width,height);
+        float startLocationFactor = 0.8f;
+        strikerView = new StrikerView(this,width,height,player);
         strikerView.setOnTouchListener(strikerView);
         ConstraintSet set = new ConstraintSet();
         strikerView.setId(View.generateViewId());
         gameLayout.addView(strikerView, -1);
         set.clone(gameLayout);
-        set.connect(strikerView.getId(),ConstraintSet.TOP,gameLayout.getId(),ConstraintSet.TOP,(int)(0.8*height));
-        set.connect(strikerView.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM);
+        if (player) {
+            set.connect(strikerView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP, (int) (startLocationFactor * height));
+            set.connect(strikerView.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM);
+        }
+        else {
+            set.connect(strikerView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP);
+            set.connect(strikerView.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM, (int) (startLocationFactor * height));
+
+        }
         set.connect(strikerView.getId(),ConstraintSet.LEFT,gameLayout.getId(),ConstraintSet.LEFT);
         set.connect(strikerView.getId(),ConstraintSet.RIGHT,gameLayout.getId(),ConstraintSet.RIGHT);
         set.applyTo(gameLayout);
@@ -41,6 +49,6 @@ public class MainActivity extends AppCompatActivity {
         int width = getWindowManager().getDefaultDisplay().getWidth();
         int height = getWindowManager().getDefaultDisplay().getHeight();
         gameLayout = findViewById(R.id.board_layout);
-        setNewPositionForStriker(width,height);
+        setNewPositionForStriker(width,height,true);
     }
 }

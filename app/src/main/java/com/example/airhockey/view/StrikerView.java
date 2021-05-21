@@ -16,13 +16,14 @@ import com.example.airhockey.R;
 
 public class StrikerView extends androidx.appcompat.widget.AppCompatImageView implements View.OnTouchListener {
 
-    float dX = 0,dY = 0;
-    int width,height;
-    float radiusFactor = 0.1f;
-    int radius;
-    float posX,posY;
+    private float dX = 0,dY = 0;
+    private int width,height;
+    private float radiusFactor = 0.1f;
+    private int radius;
+    private float posX,posY;
+    private boolean player;
 
-    public StrikerView(@NonNull Context context, int width, int height) {
+    public StrikerView(@NonNull Context context, int width, int height, boolean player) {
         super(context);
         this.setImageResource(R.drawable.img_player);
         this.width = width;
@@ -30,8 +31,10 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         radius = (int) (radiusFactor * width);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(2*radius,2*radius);
         this.setLayoutParams(params);
+        this.player = player;
         Log.i("sizeX", ""+width);
         Log.i("sizeY", ""+height);
+
     }
 
     public StrikerView(@NonNull Context context, @Nullable AttributeSet attrs) {
@@ -56,7 +59,10 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         if (y + 2 * radius > height){
             return height - 2 * radius;
         }
-        if (y < height/2){
+        if (y < height/2 && player){
+            return height/2;
+        }
+        if (y > height/2 && !player){
             return height/2;
         }
         return y;
@@ -74,6 +80,9 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
 
     @Override
     public boolean onTouch(View view, MotionEvent event) {
+        if (!player){
+            return false;
+        }
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
             {
