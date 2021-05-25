@@ -1,3 +1,6 @@
-public static class PhysicalEventCalculator {
+package com.example.airhockey.utils;
+
+// this is a static class
+public class PhysicalEventCalculator {
 
 }

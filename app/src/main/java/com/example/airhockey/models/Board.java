@@ -1,5 +1,10 @@
+package com.example.airhockey.models;
+
+import com.example.airhockey.models.Ball;
+import com.example.airhockey.models.Striker;
+
 public class Board {
-    private StrikerView myStrikerView;
-    private StrikerView oponentStrikerView;
+    private Striker myStrikerView;
+    private Striker oponentStrikerView;
     private Ball ball;
 }
