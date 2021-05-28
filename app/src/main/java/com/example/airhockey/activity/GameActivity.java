@@ -24,7 +24,7 @@ import java.util.Set;
 
 
 
-public class MainActivity extends AppCompatActivity {
+public class GameActivity extends AppCompatActivity {
 
 
     StrikerView strikerView;
