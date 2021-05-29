@@ -19,6 +19,7 @@ import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -46,6 +47,7 @@ public class ConnectionActivity extends AppCompatActivity {
 
     ImageView clientBtn;
     ImageView serverBtn;
+    List<String> foundDevicesNames = null;
     private BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     private Set<BluetoothDevice> foundedDevices = new HashSet<>();
 //    private Set<BluetoothDevice> pairedDevices = new HashSet<>();
@@ -71,18 +73,18 @@ public class ConnectionActivity extends AppCompatActivity {
     };
 
     public void startScan() {
-        if (bluetoothAdapter.isDiscovering())
-            bluetoothAdapter.cancelDiscovery();
-        bluetoothAdapter.startDiscovery();
+        if (!bluetoothAdapter.isDiscovering())
+//            bluetoothAdapter.cancelDiscovery();
+            bluetoothAdapter.startDiscovery();
     }
 
-    String[] getDeviceNames() {
+    List<String> getDeviceNames() {
         List<String> nameList = new ArrayList<>();
         for (BluetoothDevice device : foundedDevices) {
             nameList.add(device.getName());
         }
         String[] array = new String[nameList.size()];
-        return nameList.toArray(array);
+        return nameList;
     }
 
     Animation getAnimation(){
@@ -101,18 +103,69 @@ public class ConnectionActivity extends AppCompatActivity {
         clientBtn = findViewById(R.id.connection_client_btn);
         serverBtn = findViewById(R.id.connection_server_btn);
         progressDialogServer = new ProgressDialog(this);
-        progressDialogServer = new ProgressDialog(this);
+        progressDialogClient = new ProgressDialog(this);
         Animation animation = getAnimation();
         serverBtn.startAnimation(animation);
         clientBtn.startAnimation(animation);
         dialogClient = new Dialog(this);
         View view = getLayoutInflater().inflate(R.layout.devices_list, null);
         ListView listView = view.findViewById(R.id.bluetooth_devices);
-        listView.setOnItemClickListener((parent, view1, position, id) -> {});
+        listView.setOnItemClickListener((parent, view1, position, id) -> {
+            if (foundDevicesNames != null){
+                Toast.makeText(getApplicationContext(), "clicked", Toast.LENGTH_LONG).show();
+                progressDialogClient.setTitle("connecting to opponent");
+                progressDialogClient.setMessage("Waiting for opponent to connect...");
+                progressDialogClient.setCancelable(true); // disable dismiss by tapping outside of the dialog
+                searchForConnection = true;
+                progressDialogClient.setOnCancelListener(dialog -> {
+                    searchForConnection = false;
+                });
+                progressDialogClient.show();
+                BluetoothDevice device = null;
+                String name = foundDevicesNames.get(position);
+                for (BluetoothDevice bluetoothDevice : foundedDevices){
+                    if (bluetoothDevice.getName().equals(name)){
+                        device = bluetoothDevice;
+                        break;
+                    }
+                }
+                BluetoothDevice finalDevice = device;
+                Thread connectionThread = new Thread(() -> {
+                    boolean connected = false;
+                    bluetoothService.connect(finalDevice);
+                    while (!connected && searchForConnection) {
+                        connected = bluetoothService.isConnected();
+                    }
+                    if (connected) {
+                        Intent intent = new Intent(getApplicationContext(), GameActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                    }
+                    else {
+                        bluetoothService.stopConnection();
+                    }
+                    progressDialogClient.dismiss();
+                });
+                connectionThread.start();
+            }
+        });
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, R.layout.bluetooth_device,R.id.bluetooth_name,getDeviceNames());
+        Button scanButton = view.findViewById(R.id.scan_btn);
+        listView.setEmptyView(findViewById(R.id.empty_list));
+        scanButton.setOnClickListener(v -> {
+            startScan();
+            arrayAdapter.clear();
+            foundDevicesNames = getDeviceNames();
+            arrayAdapter.addAll(foundDevicesNames);
+            arrayAdapter.notifyDataSetChanged();
+        });
         dialogClient.setContentView(view);
         clientBtn.setOnClickListener(v -> {
-//            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, )
+            arrayAdapter.clear();
+            foundDevicesNames = getDeviceNames();
+            arrayAdapter.addAll(foundDevicesNames);
             startScan();
+            listView.setAdapter(arrayAdapter);
             dialogClient.show();
         });
 
@@ -133,7 +186,12 @@ public class ConnectionActivity extends AppCompatActivity {
                     connected = bluetoothService.isConnected();
                 }
                 if (connected) {
-                    //todo : go to game
+                    Intent intent = new Intent(getApplicationContext(), GameActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(intent);
+                }
+                else {
+                    bluetoothService.stopConnection();
                 }
                 progressDialogServer.dismiss();
             });
