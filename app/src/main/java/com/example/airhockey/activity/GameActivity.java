@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.example.airhockey.R;
+import com.example.airhockey.handlers.BluetoothHandler;
 import com.example.airhockey.view.StrikerView;
 
 
@@ -29,9 +30,6 @@ public class GameActivity extends AppCompatActivity {
 
     StrikerView strikerView;
     ConstraintLayout gameLayout;
-    private BluetoothAdapter BA;
-    private Set<BluetoothDevice>pairedDevices;
-    ListView lv;
 
     void setNewPositionForStriker(int width, int height, boolean player){
         if (strikerView != null){
@@ -64,43 +62,7 @@ public class GameActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         int width = getWindowManager().getDefaultDisplay().getWidth();
         int height = getWindowManager().getDefaultDisplay().getHeight();
-        BA = BluetoothAdapter.getDefaultAdapter();
         gameLayout = findViewById(R.id.board_layout);
         setNewPositionForStriker(width,height,false);
-    }
-
-    public void on(View v){
-        if (!BA.isEnabled()) {
-            Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(turnOn, 0);
-            Toast.makeText(getApplicationContext(), "Turned on",Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(getApplicationContext(), "Already turned on", Toast.LENGTH_LONG).show();
-        }
-    }
-
-    public void off(View v){
-        BA.disable();
-        Toast.makeText(getApplicationContext(), "Turned off" ,Toast.LENGTH_LONG).show();
-    }
-
-
-    public  void visible(View v){
-        Intent getVisible = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        startActivityForResult(getVisible, 0);
-    }
-
-
-    public void list(View v){
-        pairedDevices = BA.getBondedDevices();
-
-        ArrayList list = new ArrayList();
-
-        for(BluetoothDevice bt : pairedDevices) list.add(bt.getName());
-        Toast.makeText(getApplicationContext(), "Paired Devices",Toast.LENGTH_SHORT).show();
-
-        final ArrayAdapter adapter = new  ArrayAdapter(this,android.R.layout.simple_list_item_1, list);
-
-        lv.setAdapter(adapter);
     }
 }
