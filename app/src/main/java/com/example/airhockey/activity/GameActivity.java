@@ -14,31 +14,45 @@ import com.example.airhockey.view.StrikerView;
 public class GameActivity extends AppCompatActivity {
 
 
-    StrikerView strikerView;
+    StrikerView playerStrikerView;
+    StrikerView opponentStrikerView;
     ConstraintLayout gameLayout;
 
-    void setNewPositionForStriker(int width, int height, boolean player){
-        if (strikerView != null){
-            gameLayout.removeView(strikerView);
+    void setNewPositionForPlayerStriker(int width, int height){
+        if (playerStrikerView != null){
+            gameLayout.removeView(playerStrikerView);
         }
+        playerStrikerView = new StrikerView(this,width,height,true);
+        playerStrikerView.setOnTouchListener(playerStrikerView);
+        setPositionForStriker(playerStrikerView, width, height, true);
+    }
+
+    void setNewPositionForOpponentStriker(int width, int height){
+        if (opponentStrikerView != null){
+            gameLayout.removeView(opponentStrikerView);
+        }
+        opponentStrikerView = new StrikerView(this,width,height,false);
+        opponentStrikerView.setOnTouchListener(opponentStrikerView);
+        setPositionForStriker(opponentStrikerView, width, height, false);
+    }
+
+    void setPositionForStriker(StrikerView view,int width, int height, boolean player){
         float startLocationFactor = 0.8f;
-        strikerView = new StrikerView(this,width,height,player);
-        strikerView.setOnTouchListener(strikerView);
         ConstraintSet set = new ConstraintSet();
-        strikerView.setId(View.generateViewId());
-        gameLayout.addView(strikerView, -1);
+        view.setId(View.generateViewId());
+        gameLayout.addView(view, -1);
         set.clone(gameLayout);
         if (player) {
-            set.connect(strikerView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP, (int) (startLocationFactor * height));
-            set.connect(strikerView.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM);
+            set.connect(view.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP, (int) (startLocationFactor * height));
+            set.connect(view.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM);
         }
         else {
-            set.connect(strikerView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP);
-            set.connect(strikerView.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM, (int) (startLocationFactor * height));
+            set.connect(view.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP);
+            set.connect(view.getId(),ConstraintSet.BOTTOM,gameLayout.getId(),ConstraintSet.BOTTOM, (int) (startLocationFactor * height));
 
         }
-        set.connect(strikerView.getId(),ConstraintSet.LEFT,gameLayout.getId(),ConstraintSet.LEFT);
-        set.connect(strikerView.getId(),ConstraintSet.RIGHT,gameLayout.getId(),ConstraintSet.RIGHT);
+        set.connect(view.getId(),ConstraintSet.LEFT,gameLayout.getId(),ConstraintSet.LEFT);
+        set.connect(view.getId(),ConstraintSet.RIGHT,gameLayout.getId(),ConstraintSet.RIGHT);
         set.applyTo(gameLayout);
     }
 
@@ -49,6 +63,7 @@ public class GameActivity extends AppCompatActivity {
         int width = getWindowManager().getDefaultDisplay().getWidth();
         int height = getWindowManager().getDefaultDisplay().getHeight();
         gameLayout = findViewById(R.id.board_layout);
-        setNewPositionForStriker(width,height,false);
+        setNewPositionForPlayerStriker(width,height);
+        setNewPositionForOpponentStriker(width,height);
     }
 }
