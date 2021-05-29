@@ -2,38 +2,56 @@ package com.example.airhockey.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.ScaleAnimation;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
+import android.widget.Toast;
 
 import com.example.airhockey.R;
+import com.example.airhockey.services.BluetoothService;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ConnectionActivity extends AppCompatActivity {
 
     private final int REQUEST_ENABLE_BT = 0;
     private final int REQUEST_SET_DISCOVERABLE = 1;
 
+    ProgressDialog progressDialogServer;
+    ProgressDialog progressDialogClient;
+    Dialog dialogClient;
+
     ImageView clientBtn;
     ImageView serverBtn;
-    private BluetoothAdapter bluetoothAdapter;
-//    TODO: the next two sets need to be showed in a list of items (to be selected by user)
-//      After setting that, you need to call cancelDiscovery() in onClickListener and save data
-    private Set<BluetoothDevice> foundedDevices;
-    private Set<BluetoothDevice> pairedDevices;
-//    private BluetoothHandler bluetoothHandler;
+    private BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    private Set<BluetoothDevice> foundedDevices = new HashSet<>();
+//    private Set<BluetoothDevice> pairedDevices = new HashSet<>();
+    private BluetoothService bluetoothService = BluetoothService.getInstance();
     ListView lv;
-
+    boolean searchForConnection = false;
     private final BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -48,6 +66,7 @@ public class ConnectionActivity extends AppCompatActivity {
                     break;
                 }
             }
+            Log.e("FOUND", action + " " + foundedDevices.size());
         }
     };
 
@@ -57,37 +76,81 @@ public class ConnectionActivity extends AppCompatActivity {
         bluetoothAdapter.startDiscovery();
     }
 
+    String[] getDeviceNames() {
+        List<String> nameList = new ArrayList<>();
+        for (BluetoothDevice device : foundedDevices) {
+            nameList.add(device.getName());
+        }
+        String[] array = new String[nameList.size()];
+        return nameList.toArray(array);
+    }
 
-    public void setView() {
-        setContentView(R.layout.activity_connection);
-        clientBtn = findViewById(R.id.connection_client_btn);
-        serverBtn = findViewById(R.id.connection_server_btn);
+    Animation getAnimation(){
         Animation animation = new ScaleAnimation(1f, 1.05f, 1f, 1.05f);
         animation.setDuration(500);
         animation.setInterpolator(new LinearInterpolator());
         animation.setRepeatCount(Animation.INFINITE);
         animation.setRepeatMode(Animation.REVERSE);
+        return animation;
+    }
+
+
+
+    public void setView() {
+        setContentView(R.layout.activity_connection);
+        clientBtn = findViewById(R.id.connection_client_btn);
+        serverBtn = findViewById(R.id.connection_server_btn);
+        progressDialogServer = new ProgressDialog(this);
+        progressDialogServer = new ProgressDialog(this);
+        Animation animation = getAnimation();
         serverBtn.startAnimation(animation);
         clientBtn.startAnimation(animation);
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        dialogClient = new Dialog(this);
+        View view = getLayoutInflater().inflate(R.layout.devices_list, null);
+        ListView listView = view.findViewById(R.id.bluetooth_devices);
+        listView.setOnItemClickListener((parent, view1, position, id) -> {});
+        dialogClient.setContentView(view);
         clientBtn.setOnClickListener(v -> {
-
+//            ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, )
+            startScan();
+            dialogClient.show();
         });
-        serverBtn.setOnClickListener(v -> {
 
+        serverBtn.setOnClickListener(v -> {
+            Toast.makeText(getApplicationContext(), "clicked", Toast.LENGTH_LONG).show();
+            progressDialogServer.setTitle("Waiting for opponent");
+            progressDialogServer.setMessage("Waiting for clients to connect...");
+            progressDialogServer.setCancelable(true); // disable dismiss by tapping outside of the dialog
+            searchForConnection = true;
+            progressDialogServer.setOnCancelListener(dialog -> {
+                searchForConnection = false;
+            });
+            makeDeviceDiscoverable();
+            Thread connectionThread = new Thread(() -> {
+                boolean connected = false;
+                bluetoothService.startConnection();
+                while (!connected && searchForConnection) {
+                    connected = bluetoothService.isConnected();
+                }
+                if (connected) {
+                    //todo : go to game
+                }
+                progressDialogServer.dismiss();
+            });
+            connectionThread.start();
+            progressDialogServer.show();
         });
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setView();
-//        bluetoothHandler = BluetoothHandler.getInstance();
-        if (!bluetoothAdapter.isEnabled())
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        while (!bluetoothAdapter.isEnabled())
             turnOnBluetooth();
         registerReceiver(receiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         registerReceiver(receiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-        pairedDevices = bluetoothAdapter.getBondedDevices();
+        setView();
     }
 
     private void turnOnBluetooth(){
@@ -96,22 +159,11 @@ public class ConnectionActivity extends AppCompatActivity {
     }
 
     private void makeDeviceDiscoverable() {
-        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-        startActivityForResult(discoverableIntent, REQUEST_SET_DISCOVERABLE);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        switch (resultCode) {
-//            case REQUEST_ENABLE_BT:
-//                if (resultCode == Activity.RESULT_OK) {
-//                      TODO: check values and setup the game
-//                } else {
-//                    TODO: Send a message and tell that bluetooth must be enabled and rerun the action
-//                }
-//        }
-        super.onActivityResult(requestCode, resultCode, data);
+        if(bluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE){
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+            startActivityForResult(discoverableIntent, REQUEST_SET_DISCOVERABLE);
+        }
     }
 
     @Override

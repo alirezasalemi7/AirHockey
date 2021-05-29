@@ -54,6 +54,10 @@ public class BluetoothService {
         copy.write(data);
     }
 
+    public boolean isConnected() {
+        return currentState == ConnectionStates.STATE_CONNECTED;
+    }
+
     public synchronized int getCurrentState() {
         return currentState;
     }
