@@ -5,24 +5,10 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 
 import com.example.airhockey.R;
-import com.example.airhockey.handlers.BluetoothHandler;
 import com.example.airhockey.view.StrikerView;
-
-
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.widget.ListView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.content.Intent;
-import android.widget.Toast;
-import java.util.ArrayList;
-import java.util.Set;
-
 
 
 public class GameActivity extends AppCompatActivity {
