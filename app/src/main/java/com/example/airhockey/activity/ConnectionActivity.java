@@ -1,5 +1,6 @@
 package com.example.airhockey.activity;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
@@ -203,12 +204,21 @@ public class ConnectionActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        while (!bluetoothAdapter.isEnabled())
+        setView();
+        if (!bluetoothAdapter.isEnabled())
             turnOnBluetooth();
         registerReceiver(receiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         registerReceiver(receiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-        setView();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == REQUEST_ENABLE_BT){
+            if (resultCode != RESULT_OK){
+                turnOnBluetooth();
+            }
+        }
     }
 
     private void turnOnBluetooth(){
