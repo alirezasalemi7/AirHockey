@@ -61,13 +61,17 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         if (y < height/2f && player){
             return height/2f;
         }
-        if (y > height/2f && !player){
-            return height/2f;
+        if (y + 2 * radius > height/2f && !player){
+            return height/2f - 2 * radius;
         }
         return y;
     }
 
     public void setPosition(float x, float y){
+        if (!player){
+            x = x - 2 * radius;
+            y = y - 2 * radius;
+        }
         this.animate()
                 .x(calculatePosX(x))
                 .y(calculatePosY(y))

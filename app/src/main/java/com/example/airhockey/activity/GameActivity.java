@@ -8,6 +8,7 @@ import androidx.constraintlayout.widget.ConstraintSet;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Pair;
 import android.view.View;
@@ -16,15 +17,18 @@ import com.example.airhockey.R;
 import com.example.airhockey.models.MessageConstants;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
+import com.example.airhockey.utils.ProtocolUtils;
 import com.example.airhockey.utils.SerializablePair;
 import com.example.airhockey.view.StrikerView;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.io.StreamCorruptedException;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -47,12 +51,21 @@ public class GameActivity extends AppCompatActivity {
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
                 case MessageConstants.MESSAGE_READ:
-                    SerializablePair<Double,Double> rPosition = (SerializablePair<Double, Double>) deserialize((byte[]) msg.obj);
-                    SerializablePair<Integer, Integer> position = converter.reflect(converter.convertToRealPoint(rPosition));
-                    Log.e("LOC R before reflect", converter.convertToRealPoint(rPosition).toString());
-                    Log.e("LOC F receiver", rPosition.toString());
-                    Log.e("LOC R receiver", position.toString());
-                    opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
+                    byte[] msgBytes = (byte[]) msg.obj;
+                    InputStream inputStream = new ByteArrayInputStream(msgBytes);
+                    if (ProtocolUtils.getTypeOfMessage(inputStream) == ProtocolUtils.MessageTypes.POSITION_REPORT){
+                        SerializablePair<Double,Double> rPosition = null;
+                        try {
+                            rPosition = ProtocolUtils.receivePositionMessage(inputStream);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        SerializablePair<Integer, Integer> position = converter.reflect(converter.convertToRealPoint(rPosition));
+                        Log.e("LOC R before reflect", converter.convertToRealPoint(rPosition).toString());
+                        Log.e("LOC F receiver", rPosition.toString());
+                        Log.e("LOC R receiver", position.toString());
+                        opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
+                    }
                     break;
             }
         }
@@ -101,9 +114,14 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        int width = getWindowManager().getDefaultDisplay().getWidth();
-        int height = getWindowManager().getDefaultDisplay().getHeight();
         gameLayout = findViewById(R.id.board_layout);
+//        int width = getWindowManager().getDefaultDisplay().getWidth();
+//        int height = getWindowManager().getDefaultDisplay().getHeight();
+        DisplayMetrics metrics = this.getResources().getDisplayMetrics();
+        int width = metrics.widthPixels;
+        int height = metrics.heightPixels;
+        Log.e("width", ""+width);
+        Log.e("height", ""+height);
         bluetoothService.setHandler(bluetoothHandler);
         converter = new LocationConverter(height, width);
         setNewPositionForPlayerStriker(width, height);
@@ -127,7 +145,8 @@ public class GameActivity extends AppCompatActivity {
             if (playerStrikerView.isPositionChanged()) {
                 Log.e("Message", "True");
                 SerializablePair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
-                byte[] array = serialize(currentPoint);
+                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
+//                byte[] array = serialize(currentPoint);
                 bluetoothService.write(array);
                 Log.e("LOC R sender", playerStrikerView.getPosition().toString());
                 Log.e("LOC F sender",currentPoint.toString());
@@ -154,8 +173,12 @@ public class GameActivity extends AppCompatActivity {
     public Object deserialize(byte[] bytes) {
         try {
             ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes));
+            objectInputStream.read();
             return objectInputStream.readObject();
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (StreamCorruptedException e){
+            return null;
+        }
+        catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
             return null;
         }

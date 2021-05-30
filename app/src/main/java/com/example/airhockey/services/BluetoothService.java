@@ -237,6 +237,7 @@ public class BluetoothService {
         public void write(byte[] bytes) {
             try {
                 outputStream.write(bytes);
+                outputStream.flush();
             } catch (IOException e) {
                 e.printStackTrace();
 //                TODO: catch and send error to the handler
