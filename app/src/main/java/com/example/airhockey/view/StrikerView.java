@@ -1,16 +1,13 @@
 package com.example.airhockey.view;
 
 import android.content.Context;
-import android.util.AttributeSet;
 import android.util.Log;
-import android.view.DragEvent;
+import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.example.airhockey.R;
 
@@ -59,11 +56,11 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         if (y + 2 * radius > height){
             return height - 2 * radius;
         }
-        if (y < height/2 && player){
-            return height/2;
+        if (y < height/2f && player){
+            return height/2f;
         }
-        if (y > height/2 && !player){
-            return height/2;
+        if (y > height/2f && !player){
+            return height/2f;
         }
         return y;
     }
@@ -78,12 +75,8 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         posY = y;
     }
 
-    float getPosX(){
-        return posX;
-    }
-
-    float getPosY(){
-        return posY;
+    public Pair<Integer, Integer> getPosition() {
+        return new Pair<>((int) posX, (int) posY);
     }
 
     @Override
