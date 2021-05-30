@@ -13,7 +13,7 @@ public class LocationConverter {
     }
 
     public SerializablePair<Integer, Integer> convertToRealPoint(SerializablePair<Double, Double> fractionalPoint) {
-        return new SerializablePair<>(fractionalPoint.first.intValue() * width, fractionalPoint.second.intValue() * height);
+        return new SerializablePair<>((int) (fractionalPoint.first * width), (int) (fractionalPoint.second * height));
     }
 
     public SerializablePair<Double, Double> convertToFractionalPoint(SerializablePair<Integer, Integer> realPoint) {

@@ -49,7 +49,9 @@ public class GameActivity extends AppCompatActivity {
                 case MessageConstants.MESSAGE_READ:
                     SerializablePair<Double,Double> rPosition = (SerializablePair<Double, Double>) deserialize((byte[]) msg.obj);
                     SerializablePair<Integer, Integer> position = converter.reflect(converter.convertToRealPoint(rPosition));
-                    Log.e("LOCR", rPosition.toString());
+                    Log.e("LOC R before reflect", converter.convertToRealPoint(rPosition).toString());
+                    Log.e("LOC F receiver", rPosition.toString());
+                    Log.e("LOC R receiver", position.toString());
                     opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
                     break;
             }
@@ -120,13 +122,19 @@ public class GameActivity extends AppCompatActivity {
 
     public void gameLoop() {
 //        TODO: change condition to win or lose
+        Log.e("In GAME LOOP", "HI");
         while (true) {
             if (playerStrikerView.isPositionChanged()) {
+                Log.e("Message", "True");
                 SerializablePair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
                 byte[] array = serialize(currentPoint);
                 bluetoothService.write(array);
-                Log.e("LOC",currentPoint.toString());
+                Log.e("LOC R sender", playerStrikerView.getPosition().toString());
+                Log.e("LOC F sender",currentPoint.toString());
             }
+            try {
+                Thread.sleep(15);
+            } catch (InterruptedException e) {}
         }
     }
 

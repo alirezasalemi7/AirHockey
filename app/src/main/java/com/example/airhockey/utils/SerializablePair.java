@@ -14,9 +14,7 @@ public class SerializablePair<T,V> implements Serializable {
 
     @Override
     public String toString() {
-        return "SerializablePair{" +
-                "first=" + first +
-                ", second=" + second +
-                '}';
+        return "SerializablePair{first=" + first +
+                ", second=" + second + '}';
     }
 }
