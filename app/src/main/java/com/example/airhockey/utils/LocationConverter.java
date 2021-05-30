@@ -12,16 +12,16 @@ public class LocationConverter {
         this.width = width;
     }
 
-    public Pair<Integer, Integer> convertToRealPoint(Pair<Double, Double> fractionalPoint) {
-        return new Pair<>(fractionalPoint.first.intValue() * height, fractionalPoint.second.intValue() * width);
+    public SerializablePair<Integer, Integer> convertToRealPoint(SerializablePair<Double, Double> fractionalPoint) {
+        return new SerializablePair<>(fractionalPoint.first.intValue() * width, fractionalPoint.second.intValue() * height);
     }
 
-    public Pair<Double, Double> convertToFractionalPoint(Pair<Integer, Integer> realPoint) {
-        return new Pair<>(realPoint.first.doubleValue() / height, realPoint.second.doubleValue() / width);
+    public SerializablePair<Double, Double> convertToFractionalPoint(SerializablePair<Integer, Integer> realPoint) {
+        return new SerializablePair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
     }
 
-    public Pair<Integer, Integer> reflect(Pair<Integer, Integer> inputPoint) {
-        return new Pair<>(height - inputPoint.first, inputPoint.second);
+    public SerializablePair<Integer, Integer> reflect(SerializablePair<Integer, Integer> inputPoint) {
+        return new SerializablePair<>(width - inputPoint.first, height - inputPoint.second);
     }
 
 

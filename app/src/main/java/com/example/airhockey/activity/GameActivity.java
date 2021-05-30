@@ -8,6 +8,7 @@ import androidx.constraintlayout.widget.ConstraintSet;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.util.Pair;
 import android.view.View;
 
@@ -15,6 +16,7 @@ import com.example.airhockey.R;
 import com.example.airhockey.models.MessageConstants;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
+import com.example.airhockey.utils.SerializablePair;
 import com.example.airhockey.view.StrikerView;
 
 import java.io.ByteArrayInputStream;
@@ -22,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -44,7 +47,9 @@ public class GameActivity extends AppCompatActivity {
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
                 case MessageConstants.MESSAGE_READ:
-                    Pair<Integer, Integer> position = converter.reflect(converter.convertToRealPoint((Pair<Double, Double>) deserialize((byte[]) msg.obj)));
+                    SerializablePair<Double,Double> rPosition = (SerializablePair<Double, Double>) deserialize((byte[]) msg.obj);
+                    SerializablePair<Integer, Integer> position = converter.reflect(converter.convertToRealPoint(rPosition));
+                    Log.e("LOCR", rPosition.toString());
                     opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
                     break;
             }
@@ -60,7 +65,6 @@ public class GameActivity extends AppCompatActivity {
         playerStrikerView = new StrikerView(this, width, height, true);
         playerStrikerView.setOnTouchListener(playerStrikerView);
         setPositionForStriker(playerStrikerView, width, height, true);
-        isPositionChanged = true;
     }
 
     void setNewPositionForOpponentStriker(int width, int height) {
@@ -103,21 +107,25 @@ public class GameActivity extends AppCompatActivity {
         setNewPositionForPlayerStriker(width, height);
         setNewPositionForOpponentStriker(width, height);
         Thread gameThread = new Thread(() -> {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
+//            try {
+//                Thread.sleep(1000);
                 gameLoop();
-            }
+//            } catch (InterruptedException e) {
+//
+//            }
         });
+        gameThread.start();
     }
 
 
     public void gameLoop() {
 //        TODO: change condition to win or lose
         while (true) {
-            if (isPositionChanged) {
-                bluetoothService.write(serialize(converter.convertToFractionalPoint(playerStrikerView.getPosition())));
-                isPositionChanged = false;
+            if (playerStrikerView.isPositionChanged()) {
+                SerializablePair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
+                byte[] array = serialize(currentPoint);
+                bluetoothService.write(array);
+                Log.e("LOC",currentPoint.toString());
             }
         }
     }
