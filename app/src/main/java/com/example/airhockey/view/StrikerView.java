@@ -78,6 +78,14 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         posY = y;
     }
 
+    float getPosX(){
+        return posX;
+    }
+
+    float getPosY(){
+        return posY;
+    }
+
     @Override
     public boolean onTouch(View view, MotionEvent event) {
         if (!player){
