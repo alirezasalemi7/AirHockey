@@ -10,7 +10,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.Pair;
 import android.view.View;
 
 import com.example.airhockey.R;
@@ -18,7 +17,7 @@ import com.example.airhockey.models.MessageConstants;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
 import com.example.airhockey.utils.ProtocolUtils;
-import com.example.airhockey.utils.SerializablePair;
+import com.example.airhockey.models.SerializablePair;
 import com.example.airhockey.view.StrikerView;
 
 import java.io.ByteArrayInputStream;
@@ -27,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.io.StreamCorruptedException;
 
 

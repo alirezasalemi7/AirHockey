@@ -2,7 +2,6 @@ package com.example.airhockey.view;
 
 import android.content.Context;
 import android.util.Log;
-import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -10,7 +9,7 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 
 import com.example.airhockey.R;
-import com.example.airhockey.utils.SerializablePair;
+import com.example.airhockey.models.SerializablePair;
 
 public class StrikerView extends androidx.appcompat.widget.AppCompatImageView implements View.OnTouchListener {
 

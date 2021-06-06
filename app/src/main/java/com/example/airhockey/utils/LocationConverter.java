@@ -1,7 +1,7 @@
 package com.example.airhockey.utils;
 
 
-import android.util.Pair;
+import com.example.airhockey.models.SerializablePair;
 
 public class LocationConverter {
     private int height;

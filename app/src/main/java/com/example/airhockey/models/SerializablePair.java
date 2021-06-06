@@ -1,4 +1,4 @@
-package com.example.airhockey.utils;
+package com.example.airhockey.models;
 
 import java.io.Serializable;
 
