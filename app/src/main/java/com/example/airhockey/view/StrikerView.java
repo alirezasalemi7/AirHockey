@@ -68,8 +68,8 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
 
     public void setPosition(float x, float y){
         if (!player){
-            x = x - 2 * radius;
-            y = y - 2 * radius;
+            x = x - 1 * radius;
+            y = y - 1 * radius;
         }
         this.animate()
                 .x(calculatePosX(x))
@@ -88,7 +88,7 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
     }
 
     public SerializablePair<Integer, Integer> getPosition() {
-        return new SerializablePair<>((int) posX, (int) posY);
+        return new SerializablePair<>((int) (posX + radius), (int) (posY + radius));
     }
 
     @Override
