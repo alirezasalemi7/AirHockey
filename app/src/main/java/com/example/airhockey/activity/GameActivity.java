@@ -5,12 +5,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import com.example.airhockey.R;
 import com.example.airhockey.models.MessageConstants;
@@ -18,6 +20,7 @@ import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
 import com.example.airhockey.utils.ProtocolUtils;
 import com.example.airhockey.models.SerializablePair;
+import com.example.airhockey.view.BallView;
 import com.example.airhockey.view.StrikerView;
 
 import java.io.ByteArrayInputStream;
@@ -27,6 +30,8 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -34,11 +39,22 @@ public class GameActivity extends AppCompatActivity {
 
     StrikerView playerStrikerView;
     StrikerView opponentStrikerView;
+    BallView ballView;
     ConstraintLayout gameLayout;
 
     private BluetoothService bluetoothService = BluetoothService.getInstance();
     private boolean isPositionChanged = false;
     private LocationConverter converter;
+
+    private Timer goalAckTimer;
+    private Timer collisionTimer;
+    private long TIMEOUT = 100;
+
+    private int scorePlayer = 0;
+    private int scoreOpponent = 0;
+    private final int MAX_SCORE_TO_WIN = 7;
+    int width;
+    int height;
 
     private class BluetoothHandler extends Handler {
         public BluetoothHandler() {
@@ -51,22 +67,103 @@ public class GameActivity extends AppCompatActivity {
                 case MessageConstants.MESSAGE_READ:
                     byte[] msgBytes = (byte[]) msg.obj;
                     InputStream inputStream = new ByteArrayInputStream(msgBytes);
-                    if (ProtocolUtils.getTypeOfMessage(inputStream) == ProtocolUtils.MessageTypes.POSITION_REPORT){
+                    ProtocolUtils.MessageTypes type = ProtocolUtils.getTypeOfMessage(inputStream);
+                    if (type == ProtocolUtils.MessageTypes.POSITION_REPORT){
                         SerializablePair<Double,Double> rPosition = null;
                         try {
                             rPosition = ProtocolUtils.receivePositionMessage(inputStream);
+                            SerializablePair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(rPosition));
+                            opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        SerializablePair<Integer, Integer> position = converter.reflect(converter.convertToRealPoint(rPosition));
-                        Log.e("LOC R before reflect", converter.convertToRealPoint(rPosition).toString());
-                        Log.e("LOC F receiver", rPosition.toString());
-                        Log.e("LOC R receiver", position.toString());
-                        opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
+                    }
+                    if (type == ProtocolUtils.MessageTypes.BALL_COLLISION_REPORT){
+                        SerializablePair<SerializablePair<Double,Double>,SerializablePair<Double,Double>> ballInfo = null;
+                        SerializablePair<Double,Double> collisionPosition = null;
+                        SerializablePair<Double,Double> collisionSpeed = null;
+                        try {
+                            ballInfo = ProtocolUtils.receiveBallCollisionMessage(inputStream);
+                            collisionPosition = ballInfo.first;
+                            collisionSpeed = ballInfo.second;
+                            SerializablePair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(collisionPosition));
+                            SerializablePair<Integer, Integer> speed = converter.reflectSpeed(converter.convertToRealPoint(collisionSpeed));
+                            //todo: set position and speed of ball
+                            bluetoothService.write(ProtocolUtils.sendBallCollisionAck());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (type == ProtocolUtils.MessageTypes.BALL_COLLISION_ACK){
+                        stopCollisionTimer();
+                    }
+                    if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_REPORT){
+                        scorePlayer += 1;
+                        Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
+                        setNewPositionForPlayerStriker(width, height);
+                        setNewPositionForOpponentStriker(width, height);
+                        bluetoothService.write(ProtocolUtils.sendGoalSCoredAck());
+                        if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
+                            //todo: end game, drop connection
+                            goToEndGame();
+                        }
+                        else {
+                            setAfterGoalPositionForBall(true);
+                        }
+                    }
+                    if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_ACK){
+                        stopGoalAckTimer();
+                        Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
+                        setNewPositionForPlayerStriker(width, height);
+                        setNewPositionForOpponentStriker(width, height);
+                        if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
+                            //todo: end game, drop connection
+                            goToEndGame();
+                        }
+                        else {
+                            setAfterGoalPositionForBall(false);
+                        }
                     }
                     break;
             }
         }
+    }
+
+    void goToEndGame() {
+        Intent intent = new Intent(getApplicationContext(), EndGameActivity.class);
+        intent.putExtra("player_score", scorePlayer);
+        intent.putExtra("opponent_score", scoreOpponent);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+    }
+
+    void startGoalAckTimer(){
+        goalAckTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                bluetoothService.write(ProtocolUtils.sendGoalSCored());
+                goalAckTimer.schedule(this, TIMEOUT);
+            }
+        }, TIMEOUT);
+    }
+
+    void stopGoalAckTimer(){
+        goalAckTimer.cancel();
+    }
+
+    void startCollisionTimer(){
+        collisionTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                //todo: send current location and speed of ball
+//                bluetoothService.write(ProtocolUtils.sendBallCollision());
+                collisionTimer.schedule(this, TIMEOUT);
+            }
+        }, TIMEOUT);
+    }
+
+    void stopCollisionTimer(){
+        collisionTimer.cancel();
     }
 
     private final Handler bluetoothHandler = new BluetoothHandler();
@@ -108,47 +205,76 @@ public class GameActivity extends AppCompatActivity {
         set.applyTo(gameLayout);
     }
 
+    void setStartPositionForBall() {
+        if (ballView != null){
+            gameLayout.removeView(ballView);
+        }
+        ballView = new BallView(getApplicationContext(), width, height);
+        ConstraintSet set = new ConstraintSet();
+        ballView.setId(View.generateViewId());
+        gameLayout.addView(ballView, -1);
+        set.clone(gameLayout);
+        set.connect(ballView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.TOP);
+        set.connect(ballView.getId(), ConstraintSet.BOTTOM, gameLayout.getId(), ConstraintSet.BOTTOM);
+        set.connect(ballView.getId(), ConstraintSet.LEFT, gameLayout.getId(), ConstraintSet.LEFT);
+        set.connect(ballView.getId(), ConstraintSet.RIGHT, gameLayout.getId(), ConstraintSet.RIGHT);
+        set.applyTo(gameLayout);
+    }
+
+    void setAfterGoalPositionForBall(boolean playerScored) {
+        if (ballView != null){
+            gameLayout.removeView(ballView);
+        }
+        ballView = new BallView(getApplicationContext(), width, height);
+        float startLocationFactor = 0.6f;
+        ConstraintSet set = new ConstraintSet();
+        ballView.setId(View.generateViewId());
+        gameLayout.addView(ballView, -1);
+        set.clone(gameLayout);
+        if (playerScored) {
+            set.connect(ballView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.BOTTOM, (int) (startLocationFactor * height));
+            set.connect(ballView.getId(), ConstraintSet.BOTTOM, gameLayout.getId(), ConstraintSet.TOP);
+        } else {
+            set.connect(ballView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.BOTTOM);
+            set.connect(ballView.getId(), ConstraintSet.BOTTOM, gameLayout.getId(), ConstraintSet.TOP, (int) (startLocationFactor * height));
+
+        }
+        set.connect(ballView.getId(), ConstraintSet.LEFT, gameLayout.getId(), ConstraintSet.LEFT);
+        set.connect(ballView.getId(), ConstraintSet.RIGHT, gameLayout.getId(), ConstraintSet.RIGHT);
+        set.applyTo(gameLayout);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         gameLayout = findViewById(R.id.board_layout);
-//        int width = getWindowManager().getDefaultDisplay().getWidth();
-//        int height = getWindowManager().getDefaultDisplay().getHeight();
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
-        int width = metrics.widthPixels;
-        int height = metrics.heightPixels;
-        Log.e("width", ""+width);
-        Log.e("height", ""+height);
+        width = metrics.widthPixels;
+        height = metrics.heightPixels;
         bluetoothService.setHandler(bluetoothHandler);
         converter = new LocationConverter(height, width);
         setNewPositionForPlayerStriker(width, height);
         setNewPositionForOpponentStriker(width, height);
+        setStartPositionForBall();
         Thread gameThread = new Thread(() -> {
-//            try {
-//                Thread.sleep(1000);
                 gameLoop();
-//            } catch (InterruptedException e) {
-//
-//            }
         });
         gameThread.start();
     }
 
 
     public void gameLoop() {
-//        TODO: change condition to win or lose
-        Log.e("In GAME LOOP", "HI");
         while (true) {
             if (playerStrikerView.isPositionChanged()) {
-                Log.e("Message", "True");
                 SerializablePair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
                 byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
-//                byte[] array = serialize(currentPoint);
                 bluetoothService.write(array);
-                Log.e("LOC R sender", playerStrikerView.getPosition().toString());
-                Log.e("LOC F sender",currentPoint.toString());
             }
+            //todo: check if collision occur, should send data and start timer
+            //here
+            //todo: check if goal score, should send goal score data and start timer
+            //here
             try {
                 Thread.sleep(15);
             } catch (InterruptedException e) {}

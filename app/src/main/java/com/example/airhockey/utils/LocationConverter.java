@@ -20,9 +20,12 @@ public class LocationConverter {
         return new SerializablePair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
     }
 
-    public SerializablePair<Integer, Integer> reflect(SerializablePair<Integer, Integer> inputPoint) {
+    public SerializablePair<Integer, Integer> reflectPosition(SerializablePair<Integer, Integer> inputPoint) {
         return new SerializablePair<>(width - inputPoint.first, height - inputPoint.second);
     }
 
+    public SerializablePair<Integer, Integer> reflectSpeed(SerializablePair<Integer, Integer> inputPoint) {
+        return new SerializablePair<>(-inputPoint.first, -inputPoint.second);
+    }
 
 }

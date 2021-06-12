@@ -12,8 +12,11 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.example.airhockey.models.ProtocolConstants.COLLISION_ACK;
+import static com.example.airhockey.models.ProtocolConstants.COLLISION_MSG;
 import static com.example.airhockey.models.ProtocolConstants.DOUBLE_PATTERN;
 import static com.example.airhockey.models.ProtocolConstants.END_MSG;
+import static com.example.airhockey.models.ProtocolConstants.GOAL_ACK;
 import static com.example.airhockey.models.ProtocolConstants.POSITION_MSG;
 import static com.example.airhockey.models.ProtocolConstants.SEP;
 
@@ -21,6 +24,10 @@ public class ProtocolUtils {
 
     public enum MessageTypes {
         POSITION_REPORT,
+        BALL_COLLISION_REPORT,
+        BALL_COLLISION_ACK,
+        GOAL_SCORED_REPORT,
+        GOAL_SCORED_ACK,
         UNKNOWN
     }
 
@@ -28,11 +35,31 @@ public class ProtocolUtils {
         return String.format(Locale.US, POSITION_MSG + "%f" + SEP + "%f" + END_MSG, position.first, position.second).getBytes();
     }
 
+    public static byte[] sendBallCollision(SerializablePair<Double,Double> position, SerializablePair<Double,Double> velocity){
+        return String.format(Locale.US, COLLISION_MSG + "%f" + SEP + "%f" + SEP + "%f" + SEP + "%f" + END_MSG, position.first, position.second, velocity.first, velocity.second).getBytes();
+    }
+
+    public static byte[] sendBallCollisionAck(){
+        return (COLLISION_ACK + "" + END_MSG).getBytes();
+    }
+
+    public static byte[] sendGoalSCoredAck(){
+        return (GOAL_ACK + "" + END_MSG).getBytes();
+    }
+
+    public static byte[] sendGoalSCored(){
+        return (GOAL_ACK + "" + END_MSG).getBytes();
+    }
+
     public static MessageTypes getTypeOfMessage(InputStream stream){
         try {
             switch ((char) stream.read()) {
                 case POSITION_MSG:
                     return MessageTypes.POSITION_REPORT;
+                case COLLISION_MSG:
+                    return MessageTypes.BALL_COLLISION_REPORT;
+                case COLLISION_ACK:
+                    return MessageTypes.BALL_COLLISION_ACK;
                 default:
                     return MessageTypes.UNKNOWN;
             }
@@ -61,6 +88,18 @@ public class ProtocolUtils {
             inputs[i] = Double.parseDouble(matcher.group());
         }
         return new SerializablePair<>(inputs[0], inputs[1]);
+    }
+
+    static public SerializablePair<SerializablePair<Double,Double>,SerializablePair<Double,Double>> receiveBallCollisionMessage(InputStream stream) throws Exception {
+        String message = getString(stream);
+        Matcher matcher = Pattern.compile(DOUBLE_PATTERN).matcher(message);
+        Log.e("msg", message);
+        Double[] inputs = new Double[4];
+        for (int i = 0; i < 4; i++) {
+            if (!matcher.find()) throw new Exception("corrupted message");
+            inputs[i] = Double.parseDouble(matcher.group());
+        }
+        return new SerializablePair<>(new SerializablePair<>(inputs[0], inputs[1]),new SerializablePair<>(inputs[2], inputs[3]));
     }
 
 }
