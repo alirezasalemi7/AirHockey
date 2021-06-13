@@ -62,4 +62,8 @@ public class BallView extends androidx.appcompat.widget.AppCompatImageView {
     public Pair<Integer, Integer> getPosition() {
         return new Pair<>((int) (posX + radius), (int) (posY + radius));
     }
+
+    public int getRadius() {
+        return radius;
+    }
 }

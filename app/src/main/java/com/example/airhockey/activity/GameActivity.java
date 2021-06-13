@@ -15,8 +15,10 @@ import android.widget.Toast;
 
 import com.example.airhockey.R;
 import com.example.airhockey.models.MessageConstants;
+import com.example.airhockey.models.State;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
+import com.example.airhockey.utils.PhysicalEventCalculator;
 import com.example.airhockey.utils.ProtocolUtils;
 import com.example.airhockey.view.BallView;
 import com.example.airhockey.models.Pair;
@@ -31,6 +33,7 @@ import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class GameActivity extends AppCompatActivity {
@@ -40,6 +43,7 @@ public class GameActivity extends AppCompatActivity {
     StrikerView opponentStrikerView;
     BallView ballView;
     ConstraintLayout gameLayout;
+    PhysicalEventCalculator physicalEventCalculator;
 
     private BluetoothService bluetoothService = BluetoothService.getInstance();
     private boolean isPositionChanged = false;
@@ -48,6 +52,8 @@ public class GameActivity extends AppCompatActivity {
     private Timer goalAckTimer;
     private Timer collisionTimer;
     private long TIMEOUT = 100;
+
+    private AtomicBoolean waitForSync;
 
     private int scorePlayer = 0;
     private int scoreOpponent = 0;
@@ -85,9 +91,9 @@ public class GameActivity extends AppCompatActivity {
                             ballInfo = ProtocolUtils.receiveBallCollisionMessage(inputStream);
                             collisionPosition = ballInfo.first;
                             collisionSpeed = ballInfo.second;
-                            Pair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(collisionPosition));
-                            Pair<Integer, Integer> speed = converter.reflectSpeed(converter.convertToRealPoint(collisionSpeed));
-                            //todo: set position and speed of ball
+                            Pair<Double, Double> position = converter.reflectPositionBall(converter.convertToRealPoint(collisionPosition));
+                            Pair<Double, Double> speed = converter.reflectSpeed(converter.convertToRealPoint(collisionSpeed));
+                            physicalEventCalculator.setBallNewState(position, speed);
                             bluetoothService.write(ProtocolUtils.sendBallCollisionAck());
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -112,6 +118,7 @@ public class GameActivity extends AppCompatActivity {
                     }
                     if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_ACK){
                         stopGoalAckTimer();
+                        waitForSync.set(false);
                         Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
                         setNewPositionForPlayerStriker(width, height);
                         setNewPositionForOpponentStriker(width, height);
@@ -154,8 +161,8 @@ public class GameActivity extends AppCompatActivity {
         collisionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                //todo: send current location and speed of ball
-//                bluetoothService.write(ProtocolUtils.sendBallCollision());
+                State ballState = physicalEventCalculator.getBallState();
+                bluetoothService.write(ProtocolUtils.sendBallCollision(ballState.getPosition(), ballState.getVelocity()));
                 collisionTimer.schedule(this, TIMEOUT);
             }
         }, TIMEOUT);
@@ -251,6 +258,7 @@ public class GameActivity extends AppCompatActivity {
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
+        physicalEventCalculator = new PhysicalEventCalculator(width,height);
         bluetoothService.setHandler(bluetoothHandler);
         converter = new LocationConverter(height, width);
         setNewPositionForPlayerStriker(width, height);
@@ -264,16 +272,31 @@ public class GameActivity extends AppCompatActivity {
 
 
     public void gameLoop() {
+        waitForSync.set(false);
+        physicalEventCalculator.setRadius(ballView.getRadius(), playerStrikerView.getRadius());
         while (true) {
+            while (waitForSync.get());
+            if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
+                break;
+            }
             if (playerStrikerView.isPositionChanged()) {
                 Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
                 byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
                 bluetoothService.write(array);
             }
-            //todo: check if collision occur, should send data and start timer
-            //here
-            //todo: check if goal score, should send goal score data and start timer
-            //here
+            if (physicalEventCalculator.isGoalScored()){
+                bluetoothService.write(ProtocolUtils.sendGoalSCored());
+                waitForSync.set(true);
+                startGoalAckTimer();
+                continue;
+            }
+            if (physicalEventCalculator.isHitToStriker(playerStrikerView.getPosition(), ballView.getPosition(), playerStrikerView.getRadius(), ballView.getRadius())){
+                Pair<Double,Double> position = physicalEventCalculator.getCollisionPositionForBall();
+                Pair<Double,Double> velocity = physicalEventCalculator.getSpeedOfBallAfterCollision();
+                bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
+                startCollisionTimer();
+            }
+            physicalEventCalculator.move(0.017);
             try {
                 Thread.sleep(15);
             } catch (InterruptedException e) {}

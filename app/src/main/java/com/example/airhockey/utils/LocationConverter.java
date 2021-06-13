@@ -24,8 +24,14 @@ public class LocationConverter {
         return new Pair<>(width - inputPoint.first, height - inputPoint.second);
     }
 
-    public Pair<Integer, Integer> reflectSpeed(Pair<Integer, Integer> inputPoint) {
-        return new Pair<>(-inputPoint.first, -inputPoint.second);
+    public Pair<Double, Double> reflectPositionBall(Pair<Integer, Integer> inputPoint) {
+        Pair<Integer, Integer> pos = reflectPosition(inputPoint);
+        return new Pair<>((double) pos.first, (double) pos.second);
+    }
+
+
+    public Pair<Double, Double> reflectSpeed(Pair<Integer, Integer> inputPoint) {
+        return new Pair<>((double)-inputPoint.first,(double) -inputPoint.second);
     }
 
 }

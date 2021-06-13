@@ -112,4 +112,8 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         }
         return true;
     }
+
+    public int getRadius() {
+        return radius;
+    }
 }
