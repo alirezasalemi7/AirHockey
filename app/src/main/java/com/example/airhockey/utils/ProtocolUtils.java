@@ -2,7 +2,7 @@ package com.example.airhockey.utils;
 
 import android.util.Log;
 
-import com.example.airhockey.models.SerializablePair;
+import com.example.airhockey.models.Pair;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,11 +31,11 @@ public class ProtocolUtils {
         UNKNOWN
     }
 
-    public static byte[] sendStrikerPosition(SerializablePair<Double,Double> position){
+    public static byte[] sendStrikerPosition(Pair<Double,Double> position){
         return String.format(Locale.US, POSITION_MSG + "%f" + SEP + "%f" + END_MSG, position.first, position.second).getBytes();
     }
 
-    public static byte[] sendBallCollision(SerializablePair<Double,Double> position, SerializablePair<Double,Double> velocity){
+    public static byte[] sendBallCollision(Pair<Double,Double> position, Pair<Double,Double> velocity){
         return String.format(Locale.US, COLLISION_MSG + "%f" + SEP + "%f" + SEP + "%f" + SEP + "%f" + END_MSG, position.first, position.second, velocity.first, velocity.second).getBytes();
     }
 
@@ -78,7 +78,7 @@ public class ProtocolUtils {
         return sb.toString().trim();
     }
 
-    static public SerializablePair<Double,Double> receivePositionMessage(InputStream stream) throws Exception {
+    static public Pair<Double,Double> receivePositionMessage(InputStream stream) throws Exception {
         String message = getString(stream);
         Matcher matcher = Pattern.compile(DOUBLE_PATTERN).matcher(message);
         Log.e("msg", message);
@@ -87,10 +87,10 @@ public class ProtocolUtils {
             if (!matcher.find()) throw new Exception("corrupted message");
             inputs[i] = Double.parseDouble(matcher.group());
         }
-        return new SerializablePair<>(inputs[0], inputs[1]);
+        return new Pair<>(inputs[0], inputs[1]);
     }
 
-    static public SerializablePair<SerializablePair<Double,Double>,SerializablePair<Double,Double>> receiveBallCollisionMessage(InputStream stream) throws Exception {
+    static public Pair<Pair<Double,Double>,Pair<Double,Double>> receiveBallCollisionMessage(InputStream stream) throws Exception {
         String message = getString(stream);
         Matcher matcher = Pattern.compile(DOUBLE_PATTERN).matcher(message);
         Log.e("msg", message);
@@ -99,7 +99,7 @@ public class ProtocolUtils {
             if (!matcher.find()) throw new Exception("corrupted message");
             inputs[i] = Double.parseDouble(matcher.group());
         }
-        return new SerializablePair<>(new SerializablePair<>(inputs[0], inputs[1]),new SerializablePair<>(inputs[2], inputs[3]));
+        return new Pair<>(new Pair<>(inputs[0], inputs[1]),new Pair<>(inputs[2], inputs[3]));
     }
 
 }

@@ -10,7 +10,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -19,8 +18,8 @@ import com.example.airhockey.models.MessageConstants;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
 import com.example.airhockey.utils.ProtocolUtils;
-import com.example.airhockey.models.SerializablePair;
 import com.example.airhockey.view.BallView;
+import com.example.airhockey.models.Pair;
 import com.example.airhockey.view.StrikerView;
 
 import java.io.ByteArrayInputStream;
@@ -69,25 +68,25 @@ public class GameActivity extends AppCompatActivity {
                     InputStream inputStream = new ByteArrayInputStream(msgBytes);
                     ProtocolUtils.MessageTypes type = ProtocolUtils.getTypeOfMessage(inputStream);
                     if (type == ProtocolUtils.MessageTypes.POSITION_REPORT){
-                        SerializablePair<Double,Double> rPosition = null;
+                        Pair<Double,Double> rPosition = null;
                         try {
                             rPosition = ProtocolUtils.receivePositionMessage(inputStream);
-                            SerializablePair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(rPosition));
+                            Pair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(rPosition));
                             opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
                     if (type == ProtocolUtils.MessageTypes.BALL_COLLISION_REPORT){
-                        SerializablePair<SerializablePair<Double,Double>,SerializablePair<Double,Double>> ballInfo = null;
-                        SerializablePair<Double,Double> collisionPosition = null;
-                        SerializablePair<Double,Double> collisionSpeed = null;
+                        Pair<Pair<Double,Double>,Pair<Double,Double>> ballInfo = null;
+                        Pair<Double,Double> collisionPosition = null;
+                        Pair<Double,Double> collisionSpeed = null;
                         try {
                             ballInfo = ProtocolUtils.receiveBallCollisionMessage(inputStream);
                             collisionPosition = ballInfo.first;
                             collisionSpeed = ballInfo.second;
-                            SerializablePair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(collisionPosition));
-                            SerializablePair<Integer, Integer> speed = converter.reflectSpeed(converter.convertToRealPoint(collisionSpeed));
+                            Pair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(collisionPosition));
+                            Pair<Integer, Integer> speed = converter.reflectSpeed(converter.convertToRealPoint(collisionSpeed));
                             //todo: set position and speed of ball
                             bluetoothService.write(ProtocolUtils.sendBallCollisionAck());
                         } catch (Exception e) {
@@ -104,7 +103,7 @@ public class GameActivity extends AppCompatActivity {
                         setNewPositionForOpponentStriker(width, height);
                         bluetoothService.write(ProtocolUtils.sendGoalSCoredAck());
                         if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
-                            //todo: end game, drop connection
+                            bluetoothService.stopConnection();
                             goToEndGame();
                         }
                         else {
@@ -117,7 +116,7 @@ public class GameActivity extends AppCompatActivity {
                         setNewPositionForPlayerStriker(width, height);
                         setNewPositionForOpponentStriker(width, height);
                         if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
-                            //todo: end game, drop connection
+                            bluetoothService.stopConnection();
                             goToEndGame();
                         }
                         else {
@@ -267,7 +266,7 @@ public class GameActivity extends AppCompatActivity {
     public void gameLoop() {
         while (true) {
             if (playerStrikerView.isPositionChanged()) {
-                SerializablePair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
+                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
                 byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
                 bluetoothService.write(array);
             }

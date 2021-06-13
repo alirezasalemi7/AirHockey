@@ -1,6 +1,6 @@
 package com.example.airhockey.models;
 
-import android.util.Pair;
+
 
 public class State {
     private Pair<Double, Double> velocity;

@@ -2,7 +2,7 @@ package com.example.airhockey.utils;
 
 import android.os.Environment;
 
-import com.example.airhockey.models.SerializablePair;
+import com.example.airhockey.models.Pair;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -36,7 +36,7 @@ public class Logger {
         writer.write(type + " : " + message + "\n");
     }
 
-    public void logBallPosition(int frame, SerializablePair<Integer,Integer> location) throws IOException {
+    public void logBallPosition(int frame, Pair<Integer,Integer> location) throws IOException {
         String message = "frame = " + frame + " posX = " + location.first + " posY = " + location.second;
         log("BallPosReport", message);
     }

@@ -9,7 +9,7 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 
 import com.example.airhockey.R;
-import com.example.airhockey.models.SerializablePair;
+import com.example.airhockey.models.Pair;
 
 public class StrikerView extends androidx.appcompat.widget.AppCompatImageView implements View.OnTouchListener {
 
@@ -87,8 +87,8 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         return temp;
     }
 
-    public SerializablePair<Integer, Integer> getPosition() {
-        return new SerializablePair<>((int) (posX + radius), (int) (posY + radius));
+    public Pair<Integer, Integer> getPosition() {
+        return new Pair<>((int) (posX + radius), (int) (posY + radius));
     }
 
     @Override

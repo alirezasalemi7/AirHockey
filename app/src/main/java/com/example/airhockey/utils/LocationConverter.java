@@ -1,7 +1,7 @@
 package com.example.airhockey.utils;
 
 
-import com.example.airhockey.models.SerializablePair;
+import com.example.airhockey.models.Pair;
 
 public class LocationConverter {
     private int height;
@@ -12,20 +12,20 @@ public class LocationConverter {
         this.width = width;
     }
 
-    public SerializablePair<Integer, Integer> convertToRealPoint(SerializablePair<Double, Double> fractionalPoint) {
-        return new SerializablePair<>((int) (fractionalPoint.first * width), (int) (fractionalPoint.second * height));
+    public Pair<Integer, Integer> convertToRealPoint(Pair<Double, Double> fractionalPoint) {
+        return new Pair<>((int) (fractionalPoint.first * width), (int) (fractionalPoint.second * height));
     }
 
-    public SerializablePair<Double, Double> convertToFractionalPoint(SerializablePair<Integer, Integer> realPoint) {
-        return new SerializablePair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
+    public Pair<Double, Double> convertToFractionalPoint(Pair<Integer, Integer> realPoint) {
+        return new Pair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
     }
 
-    public SerializablePair<Integer, Integer> reflectPosition(SerializablePair<Integer, Integer> inputPoint) {
-        return new SerializablePair<>(width - inputPoint.first, height - inputPoint.second);
+    public Pair<Integer, Integer> reflectPosition(Pair<Integer, Integer> inputPoint) {
+        return new Pair<>(width - inputPoint.first, height - inputPoint.second);
     }
 
-    public SerializablePair<Integer, Integer> reflectSpeed(SerializablePair<Integer, Integer> inputPoint) {
-        return new SerializablePair<>(-inputPoint.first, -inputPoint.second);
+    public Pair<Integer, Integer> reflectSpeed(Pair<Integer, Integer> inputPoint) {
+        return new Pair<>(-inputPoint.first, -inputPoint.second);
     }
 
 }
