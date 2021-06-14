@@ -11,7 +11,7 @@ import com.example.airhockey.models.Pair;
 
 public class BallView extends androidx.appcompat.widget.AppCompatImageView {
 
-    private float radiusFactor = 0.6f;
+    private float radiusFactor = 0.06f;
     private int radius;
     private int width;
     private int height;

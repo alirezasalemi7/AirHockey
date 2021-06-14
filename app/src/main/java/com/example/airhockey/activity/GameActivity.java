@@ -255,15 +255,20 @@ public class GameActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         gameLayout = findViewById(R.id.board_layout);
+        waitForSync = new AtomicBoolean();
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
-        physicalEventCalculator = new PhysicalEventCalculator(width,height);
         bluetoothService.setHandler(bluetoothHandler);
         converter = new LocationConverter(height, width);
         setNewPositionForPlayerStriker(width, height);
         setNewPositionForOpponentStriker(width, height);
         setStartPositionForBall();
+        State ballState = new State(new Pair<>(0.0, 0.0), new Pair<>((double) (width/2), (double)(height/2)));
+        State strikerState = new State(new Pair<>(0.0, 0.0), new Pair<>((double) (width/2),(double)(height - 2 * playerStrikerView.getRadius())));
+        physicalEventCalculator = new PhysicalEventCalculator(width,height,ballState,strikerState);
+        collisionTimer = new Timer();
+        goalAckTimer = new Timer();
         Thread gameThread = new Thread(() -> {
                 gameLoop();
         });
@@ -284,19 +289,27 @@ public class GameActivity extends AppCompatActivity {
                 byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
                 bluetoothService.write(array);
             }
-            if (physicalEventCalculator.isGoalScored()){
-                bluetoothService.write(ProtocolUtils.sendGoalSCored());
-                waitForSync.set(true);
-                startGoalAckTimer();
-                continue;
-            }
-            if (physicalEventCalculator.isHitToStriker()){
-                Pair<Double,Double> position = physicalEventCalculator.getCollisionPositionForBall();
-                Pair<Double,Double> velocity = physicalEventCalculator.getSpeedOfBallAfterCollision();
-                bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
-                startCollisionTimer();
-            }
+//            if (physicalEventCalculator.isGoalScored()){
+//                bluetoothService.write(ProtocolUtils.sendGoalSCored());
+//                waitForSync.set(true);
+//                startGoalAckTimer();
+//                continue;
+//            }
+//            if (physicalEventCalculator.isHitToStriker()){
+//                Pair<Double,Double> position = physicalEventCalculator.getCollisionPositionForBall();
+//                Pair<Double,Double> velocity = physicalEventCalculator.getSpeedOfBallAfterCollision();
+//                bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
+//                startCollisionTimer();
+//            }
+            Pair<Integer,Integer> strikerPosition = playerStrikerView.getPosition();
             physicalEventCalculator.move(0.017);
+            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    ballView.setPosition(physicalEventCalculator.getBallState().getPosition().first.floatValue(),physicalEventCalculator.getBallState().getPosition().second.floatValue());
+                }
+            });
             try {
                 Thread.sleep(15);
             } catch (InterruptedException e) {}

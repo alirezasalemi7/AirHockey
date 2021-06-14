@@ -1,5 +1,7 @@
 package com.example.airhockey.utils;
 
+import android.util.Log;
+
 import com.example.airhockey.models.Pair;
 import com.example.airhockey.models.State;
 
@@ -20,9 +22,14 @@ public class PhysicalEventCalculator {
     private State prevPlayerStrikerState;
     private State currentPlayerStrikerState;
 
-    public PhysicalEventCalculator(int xLength, int yLength) {
+    public PhysicalEventCalculator(int xLength, int yLength, State initBall, State initStriker) {
         this.xLength = xLength;
         this.yLength = yLength;
+        this.prevBallState = initBall;
+        this.currentBallState = new State(initBall.getVelocity(), initBall.getPosition());
+        this.prevPlayerStrikerState = initStriker;
+        this.currentPlayerStrikerState = new State(initStriker.getVelocity(),initStriker.getPosition());
+        Log.e("loc", initBall.getPosition().toString());
     }
 
     public void setRadius(int ballRadius, int strikerRadius) {
@@ -33,13 +40,13 @@ public class PhysicalEventCalculator {
     public State reflectHittingToSurface() {
         switch (axis) {
             case AXIS_X:
-                return new State(new Pair<>(-currentBallState.getVelocity().first, currentBallState.getVelocity().second)
+                return new State(new Pair<>(-currentBallState.getVelocity().first*0.8, currentBallState.getVelocity().second*0.8)
                         , new Pair<>(currentBallState.getPosition().first, currentBallState.getPosition().second));
             case AXIS_Y:
-                return new State(new Pair<>(currentBallState.getVelocity().first, -currentBallState.getVelocity().second)
+                return new State(new Pair<>(currentBallState.getVelocity().first*0.8, -currentBallState.getVelocity().second*0.8)
                         , new Pair<>(currentBallState.getPosition().first, currentBallState.getPosition().second));
             case CORNER:
-                return new State(new Pair<>(-currentBallState.getVelocity().first, -currentBallState.getVelocity().second)
+                return new State(new Pair<>(-currentBallState.getVelocity().first*0.8, -currentBallState.getVelocity().second*0.8)
                         , new Pair<>(currentBallState.getPosition().first, currentBallState.getPosition().second));
 //            default: TODO -> Throw error
         }
@@ -57,13 +64,16 @@ public class PhysicalEventCalculator {
     public void setPlayerStrikerPosition(Pair<Double,Double> position){
         double prevX = prevPlayerStrikerState.getPosition().first;
         double prevY = prevPlayerStrikerState.getPosition().second;
+        prevPlayerStrikerState = currentPlayerStrikerState;
         currentPlayerStrikerState = new State(new Pair<>(position.first-prevX,position.second-prevY), position);
     }
 
     public void move(double dt) {
+        setPlayerStrikerPosition(currentPlayerStrikerState.getPosition());
         Pair<Double, Double> curBallPos = currentBallState.getPosition();
         State newState;
         if (isHitToStriker()) {
+            Log.e("collision", "here");
             Pair<Double, Double> velocity = calculateVelocityAfterHit();
             newState = new State(velocity, moveWithSteadyVelocity(dt, velocity, curBallPos));
         } else if (checkHittingToWalls()) {
@@ -79,12 +89,15 @@ public class PhysicalEventCalculator {
     public boolean isHitToStriker() {
         Pair<Double, Double> strikerPos = currentPlayerStrikerState.getPosition();
         Pair<Double, Double> ballPos = currentBallState.getPosition();
-        return (strikerRadius + ballRadius) >= (Math.sqrt(Math.pow((ballPos.first - strikerPos.first), 2) + Math.pow((ballPos.first - strikerPos.first), 2)));
+//        Log.e("loc", strikerPos.toString());
+//        Log.e("loc", ballPos.toString());
+        return (strikerRadius + ballRadius) >= (Math.sqrt(Math.pow((ballPos.first - strikerPos.first), 2) + Math.pow((ballPos.second - strikerPos.second), 2)));
     }
 
     public Pair<Double, Double> calculateVelocityAfterHit() {
         Pair<Double, Double> vb = currentBallState.getVelocity();
         Pair<Double, Double> vs = currentPlayerStrikerState.getVelocity();
+        Log.e("velocity", vs.toString());
         return new Pair<>(2 * vs.first - vb.first, 2 * vs.second - vb.second);
     }
 
