@@ -290,7 +290,7 @@ public class GameActivity extends AppCompatActivity {
                 startGoalAckTimer();
                 continue;
             }
-            if (physicalEventCalculator.isHitToStriker(playerStrikerView.getPosition(), ballView.getPosition(), playerStrikerView.getRadius(), ballView.getRadius())){
+            if (physicalEventCalculator.isHitToStriker()){
                 Pair<Double,Double> position = physicalEventCalculator.getCollisionPositionForBall();
                 Pair<Double,Double> velocity = physicalEventCalculator.getSpeedOfBallAfterCollision();
                 bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
