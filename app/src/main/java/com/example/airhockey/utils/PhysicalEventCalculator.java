@@ -116,6 +116,12 @@ public class PhysicalEventCalculator {
         }
         prevBallState = currentBallState;
         currentBallState = newState;
+        if (isHitToStriker(curStrikerPos, curBallPos)) {
+            newState = checkBallCollision();
+            prevBallState = currentBallState;
+            currentBallState = newState;
+
+        }
     }
 
     public void updateByHittingToStriker() {
@@ -150,6 +156,8 @@ public class PhysicalEventCalculator {
         if (this.touched) {
             Pair<Double, Double> velocity = distanceVector.getUnit().getScalarMultiply(distance).data;
             setPlayerStrikerPosition(moveWithSteadyVelocity(dt, velocity, currentPlayerStrikerState));
+            distanceVector.scalarMultiply((double)2.0);
+            velocity = distanceVector.getUnit().data;
             newState = new State(distanceVector.getUnit().getScalarMultiply((-distance) * 0.5f).getAdd(new Vector(currentBallState.getVelocity())).data, moveWithSteadyVelocity(dt, velocity, currentBallState));
         } else {
             this.touched = true;
