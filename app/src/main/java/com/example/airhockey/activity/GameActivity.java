@@ -266,7 +266,7 @@ public class GameActivity extends AppCompatActivity {
         setStartPositionForBall();
         State ballState = new State(new Pair<>(0.0, 0.0), new Pair<>((double) (width/2), (double)(height/2)));
         State strikerState = new State(new Pair<>(0.0, 0.0), new Pair<>((double) (width/2),(double)(height - 2 * playerStrikerView.getRadius())));
-        physicalEventCalculator = new PhysicalEventCalculator(width,height,ballState,strikerState, 0.017);
+        physicalEventCalculator = new PhysicalEventCalculator(width, height, ballState, strikerState, 0.017);
         playerStrikerView.setCalculator(physicalEventCalculator);
         opponentStrikerView.setCalculator(physicalEventCalculator);
         collisionTimer = new Timer();
@@ -286,11 +286,11 @@ public class GameActivity extends AppCompatActivity {
             if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
                 break;
             }
-            if (playerStrikerView.isPositionChanged()) {
-                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
-                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
+//            if (playerStrikerView.isPositionChanged()) {
+//                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
+//                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
 //                bluetoothService.write(array);
-            }
+//            }
 //            if (physicalEventCalculator.isGoalScored()){
 //                bluetoothService.write(ProtocolUtils.sendGoalSCored());
 //                waitForSync.set(true);
@@ -309,7 +309,8 @@ public class GameActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    ballView.setPosition(physicalEventCalculator.getBallState().getPosition().first.floatValue(),physicalEventCalculator.getBallState().getPosition().second.floatValue());
+                    Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
+                    ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
                 }
             });
             try {

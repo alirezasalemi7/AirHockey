@@ -4,7 +4,7 @@ public class Vector {
     public Pair<Double, Double> data;
 
     public Vector(Pair<Double, Double> data) {
-        this.data = data;
+        this.data = new Pair<>(data.first, data.second);
     }
 
     public Vector(Double first, Double second) {

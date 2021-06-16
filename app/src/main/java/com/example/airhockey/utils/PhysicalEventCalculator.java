@@ -71,7 +71,7 @@ public class PhysicalEventCalculator {
         double prevX = prevPlayerStrikerState.getPosition().first;
         double prevY = prevPlayerStrikerState.getPosition().second;
         prevPlayerStrikerState = currentPlayerStrikerState;
-        currentPlayerStrikerState = new State(new Pair<>(position.first-prevX,position.second-prevY), position);
+        currentPlayerStrikerState = new State(new Pair<>((position.first - prevX) / dt, (position.second - prevY) / dt), position);
     }
 
     private Double findDistance(Pair<Double, Double> a, Pair<Double, Double> b) {
@@ -85,12 +85,12 @@ public class PhysicalEventCalculator {
         State newState;
         if (isHitToStriker(curStrikerPos, curBallPos)) {
             Log.e("collision", "here");
-            Pair<Double, Double> velocity = calculateVelocityAfterHit();
-            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
-            newState = new State(velocity
-                        , new Pair<>((1 - distanceFactor) * curStrikerPos.first + distanceFactor * curBallPos.first
-                            , (1 - distanceFactor) * curStrikerPos.second + distanceFactor * curBallPos.second));
-//            newState = checkBallCollision();
+//            Pair<Double, Double> velocity = calculateVelocityAfterHit();
+//            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
+//            newState = new State(velocity
+//                        , new Pair<>((1 - distanceFactor) * curStrikerPos.first + distanceFactor * curBallPos.first
+//                            , (1 - distanceFactor) * curStrikerPos.second + distanceFactor * curBallPos.second));
+            newState = checkBallCollision();
         } else if (checkHittingToWalls()) {
             this.touched = false;
             newState = reflectHittingToSurface();
@@ -109,15 +109,15 @@ public class PhysicalEventCalculator {
         Pair<Double, Double> curStrikerPos = currentPlayerStrikerState.getPosition();
         if (isHitToStriker(curStrikerPos, curBallPos)) {
             Log.e("collision", "here");
-            Pair<Double, Double> velocity = calculateVelocityAfterHit();
-            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
-            newState = new State(velocity
-                    , new Pair<>((1 - distanceFactor) * curStrikerPos.first + distanceFactor * curBallPos.first
-                        , (1 - distanceFactor) * curStrikerPos.second + distanceFactor * curBallPos.second));
-            prevBallState = currentBallState;
-            currentBallState = newState;
+//            Pair<Double, Double> velocity = calculateVelocityAfterHit();
+//            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
+//            newState = new State(velocity
+//                    , new Pair<>((1 - distanceFactor) * curStrikerPos.first + distanceFactor * curBallPos.first
+//                        , (1 - distanceFactor) * curStrikerPos.second + distanceFactor * curBallPos.second));
 //            prevBallState = currentBallState;
-//            currentBallState = checkBallCollision();
+//            currentBallState = newState;
+            prevBallState = currentBallState;
+            currentBallState = checkBallCollision();
         }
     }
 
@@ -152,9 +152,9 @@ public class PhysicalEventCalculator {
             Vector vt2 = vt1.getScalarMultiply(v2t);
             vn1.scalarMultiply(v1n_a);
             vt1.scalarMultiply(v1t);
-            Vector ballNewVelocity = vn2.getAdd(vt2);//.getScalarMultiply(1.2d);
-            if (ballNewVelocity.value() > 2)
-                ballNewVelocity.getUnit().getScalarMultiply(2d);
+            Vector ballNewVelocity = vn2.getAdd(vt2).getScalarMultiply(1.2d);
+//            if (ballNewVelocity.value() > 2)
+//                ballNewVelocity.getUnit().getScalarMultiply(2d);
             newState = new State(ballNewVelocity.data, moveWithSteadyVelocity(dt, ballNewVelocity.data));
         }
         return newState;
