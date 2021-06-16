@@ -74,6 +74,10 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
     }
 
     public void setPosition(float x, float y){
+        Log.e("test2", x +" " + y);
+        if (Float.isNaN(x) || Float.isNaN(y)){
+            return;
+        }
         x = x - 1 * radius;
         y = y - 1 * radius;
         this.animate()
@@ -112,9 +116,20 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
             } break;
                 case MotionEvent.ACTION_MOVE:
             {
-                calculator.setPlayerStrikerPosition(new Pair<Double, Double>((double)calculatePosX(event.getRawX() + dX )+radius,(double)calculatePosY(event.getRawY() + dY)+radius));
+                float y = event.getRawY();
+                float x = event.getRawX();
+                Log.e("test", x + " "+y);
+                if (!Float.isNaN(x+dX) && !Float.isNaN(y+dY)){
+                    Log.e("test", "here");
+                    calculator.setPlayerStrikerPosition(new Pair<Double, Double>((double)calculatePosX(x + dX )+radius,(double)calculatePosY(y + dY)+radius));
+                }
+                else {
+                    Log.e("test", "here2");
+                    this.setOnTouchListener(null);
+                    this.setOnTouchListener(this::onTouch);
+                }
                 isPositionChanged = true;
-//                setPosition(event.getRawX() + dX, event.getRawY() + dY);
+                Log.e("test", "here1");
             } break;
             default:
                 return false;

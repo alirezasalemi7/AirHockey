@@ -58,8 +58,8 @@ public class PhysicalEventCalculator {
         return null;
     }
 
-    private Pair<Double, Double> moveWithSteadyVelocity(double dt, Pair<Double, Double> velocity) {
-        Pair<Double, Double> curBallPos = currentBallState.getPosition();
+    private Pair<Double, Double> moveWithSteadyVelocity(double dt, Pair<Double, Double> velocity, State state) {
+        Pair<Double, Double> curBallPos = state.getPosition();
         return new Pair<>(curBallPos.first + velocity.first * dt, curBallPos.second + velocity.second * dt);
     }
 
@@ -68,14 +68,29 @@ public class PhysicalEventCalculator {
     }
 
     public void setPlayerStrikerPosition(Pair<Double,Double> position){
+        if (Double.isNaN(position.first) && Double.isNaN(position.second)){
+            return;
+        }
+        Log.e("phy", position.toString());
         double prevX = prevPlayerStrikerState.getPosition().first;
         double prevY = prevPlayerStrikerState.getPosition().second;
         prevPlayerStrikerState = currentPlayerStrikerState;
-        currentPlayerStrikerState = new State(new Pair<>((position.first - prevX) / dt, (position.second - prevY) / dt), position);
+        Pair<Double,Double> newPos = position;
+        if (isHitToStriker(position, currentBallState.getPosition())){
+            newPos = getTangentPosition(position, currentBallState.getPosition(), strikerRadius, ballRadius);
+        }
+        currentPlayerStrikerState = new State(new Pair<>((position.first - prevX) / dt, (position.second - prevY) / dt), newPos);
     }
 
     private Double findDistance(Pair<Double, Double> a, Pair<Double, Double> b) {
         return (Math.sqrt(Math.pow((a.first - b.first), 2) + Math.pow((a.second - b.second), 2)));
+    }
+
+    private Pair<Double,Double> getTangentPosition(Pair<Double,Double> circle1, Pair<Double,Double> circle2, int radius1, int radius2){
+        double distanceFactor = (radius1 + radius2) / findDistance(circle1, circle2);
+        Pair<Double,Double> newPos = new Pair<>((1 - distanceFactor) * circle2.first + distanceFactor * circle1.first
+                , (1 - distanceFactor) * circle2.second + distanceFactor * circle1.second);
+        return newPos;
     }
 
     public void move() {
@@ -97,7 +112,7 @@ public class PhysicalEventCalculator {
         } else {
             this.touched = false;
             Pair<Double, Double> velocity = currentBallState.getVelocity();
-            newState = new State(velocity, moveWithSteadyVelocity(dt, velocity));
+            newState = new State(velocity, moveWithSteadyVelocity(dt, velocity, currentBallState));
         }
         prevBallState = currentBallState;
         currentBallState = newState;
@@ -124,7 +139,7 @@ public class PhysicalEventCalculator {
     public boolean isHitToStriker(Pair<Double, Double> strikerPos, Pair<Double, Double> ballPos) {
 //        Log.e("loc", strikerPos.toString());
 //        Log.e("loc", ballPos.toString());
-        return (strikerRadius + ballRadius) > findDistance(strikerPos, ballPos);
+        return (strikerRadius + ballRadius) >= findDistance(strikerPos, ballPos);
     }
     
     public State checkBallCollision() {
@@ -134,8 +149,8 @@ public class PhysicalEventCalculator {
         Double distance = distanceVector.value() - ((ballRadius + strikerRadius));
         if (this.touched) {
             Pair<Double, Double> velocity = distanceVector.getUnit().getScalarMultiply(distance).data;
-            setPlayerStrikerPosition(moveWithSteadyVelocity(dt, velocity));
-            newState = new State(distanceVector.getUnit().getScalarMultiply((-distance) * 0.5f).getAdd(new Vector(currentBallState.getVelocity())).data, moveWithSteadyVelocity(dt, velocity));
+            setPlayerStrikerPosition(moveWithSteadyVelocity(dt, velocity, currentPlayerStrikerState));
+            newState = new State(distanceVector.getUnit().getScalarMultiply((-distance) * 0.5f).getAdd(new Vector(currentBallState.getVelocity())).data, moveWithSteadyVelocity(dt, velocity, currentBallState));
         } else {
             this.touched = true;
             Vector vn1 = new Vector(distanceVector);
@@ -155,7 +170,10 @@ public class PhysicalEventCalculator {
             Vector ballNewVelocity = vn2.getAdd(vt2).getScalarMultiply(1.2d);
 //            if (ballNewVelocity.value() > 2)
 //                ballNewVelocity.getUnit().getScalarMultiply(2d);
-            newState = new State(ballNewVelocity.data, moveWithSteadyVelocity(dt, ballNewVelocity.data));
+            Pair<Double,Double> curBallPos = currentBallState.getPosition();
+            Pair<Double,Double> curStrikerPos = currentPlayerStrikerState.getPosition();
+            Pair<Double,Double> ballNewPos = getTangentPosition(curBallPos, curStrikerPos, ballRadius, strikerRadius);
+            newState = new State(ballNewVelocity.data, ballNewPos);
         }
         return newState;
     }

@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -52,6 +53,8 @@ public class GameActivity extends AppCompatActivity {
     private Timer goalAckTimer;
     private Timer collisionTimer;
     private long TIMEOUT = 100;
+    Thread gameThread;
+    boolean resume = true;
 
     private AtomicBoolean waitForSync;
 
@@ -78,6 +81,7 @@ public class GameActivity extends AppCompatActivity {
                         try {
                             rPosition = ProtocolUtils.receivePositionMessage(inputStream);
                             Pair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(rPosition));
+                            Log.e("test2", "im here");
                             opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -261,9 +265,9 @@ public class GameActivity extends AppCompatActivity {
         height = metrics.heightPixels;
 //        bluetoothService.setHandler(bluetoothHandler);
         converter = new LocationConverter(height, width);
+        setStartPositionForBall();
         setNewPositionForPlayerStriker(width, height);
         setNewPositionForOpponentStriker(width, height);
-        setStartPositionForBall();
         State ballState = new State(new Pair<>(0.0, 0.0), new Pair<>((double) (width/2), (double)(height/2)));
         State strikerState = new State(new Pair<>(0.0, 0.0), new Pair<>((double) (width/2),(double)(height - 2 * playerStrikerView.getRadius())));
         physicalEventCalculator = new PhysicalEventCalculator(width, height, ballState, strikerState, 0.017);
@@ -271,7 +275,7 @@ public class GameActivity extends AppCompatActivity {
         opponentStrikerView.setCalculator(physicalEventCalculator);
         collisionTimer = new Timer();
         goalAckTimer = new Timer();
-        Thread gameThread = new Thread(() -> {
+        gameThread = new Thread(() -> {
                 gameLoop();
         });
         gameThread.start();
@@ -281,12 +285,13 @@ public class GameActivity extends AppCompatActivity {
     public void gameLoop() {
         waitForSync.set(false);
         physicalEventCalculator.setRadius(ballView.getRadius(), playerStrikerView.getRadius());
-        while (true) {
+        while (resume) {
             while (waitForSync.get());
             if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
                 break;
             }
-            if (playerStrikerView.isPositionChanged()) {
+            boolean strikerPositionChanged = playerStrikerView.isPositionChanged();
+            if (strikerPositionChanged) {
                 Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
                 byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
 //                bluetoothService.write(array);
@@ -303,16 +308,16 @@ public class GameActivity extends AppCompatActivity {
 //                bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
 //                startCollisionTimer();
 //            }
-            Pair<Integer,Integer> strikerPosition = playerStrikerView.getPosition();
             physicalEventCalculator.move();
 //            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    Pair<Double,Double> strikerPosition = physicalEventCalculator.getPlayerStrikerPosition();
+                    playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
                     Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
                     ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
-                    Pair<Double,Double> pos = physicalEventCalculator.getPlayerStrikerPosition();
-                    playerStrikerView.setPosition(pos.first.floatValue(),pos.second.floatValue());
+//                    Log.e("loc", strikerPosition.toString());
                 }
             });
             try {
@@ -346,5 +351,11 @@ public class GameActivity extends AppCompatActivity {
             e.printStackTrace();
             return null;
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        resume = false;
     }
 }
