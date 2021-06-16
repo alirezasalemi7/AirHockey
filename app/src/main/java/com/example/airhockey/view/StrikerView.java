@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 
 import com.example.airhockey.R;
 import com.example.airhockey.models.Pair;
+import com.example.airhockey.utils.PhysicalEventCalculator;
 
 public class StrikerView extends androidx.appcompat.widget.AppCompatImageView implements View.OnTouchListener {
 
@@ -20,9 +21,11 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
     private float posX,posY;
     private boolean player;
     private boolean isPositionChanged = false;
+    private PhysicalEventCalculator calculator;
 
     public StrikerView(@NonNull Context context, int width, int height, boolean player) {
         super(context);
+
         if (player){
             this.setImageResource(R.drawable.img_player);
         }
@@ -38,6 +41,10 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         Log.i("sizeX", ""+width);
         Log.i("sizeY", ""+height);
 
+    }
+
+    public void setCalculator(PhysicalEventCalculator calculator) {
+        this.calculator = calculator;
     }
 
     private float calculatePosX(float x){
@@ -76,6 +83,9 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
                 .y(calculatePosY(y))
                 .setDuration(0)
                 .start();
+        if (player) {
+            calculator.updateByHittingToStriker();
+        }
         posX = x;
         posY = y;
         isPositionChanged = true;

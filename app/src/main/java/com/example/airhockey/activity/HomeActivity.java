@@ -25,7 +25,8 @@ public class HomeActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         playBtn = findViewById(R.id.home_play_btn);
         playBtn.setOnClickListener((v -> {
-            Intent intent = new Intent(getApplicationContext(), ConnectionActivity.class);
+//            TODO: CHANGE IT TO ConnectionActivity
+            Intent intent = new Intent(getApplicationContext(), GameActivity.class);
             startActivity(intent);
         }));
         Animation animation = new ScaleAnimation(1f, 1.05f, 1f, 1.05f);
