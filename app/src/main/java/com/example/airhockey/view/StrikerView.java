@@ -74,21 +74,18 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
     }
 
     public void setPosition(float x, float y){
-        if (!player){
-            x = x - 1 * radius;
-            y = y - 1 * radius;
-        }
+        x = x - 1 * radius;
+        y = y - 1 * radius;
         this.animate()
                 .x(calculatePosX(x))
                 .y(calculatePosY(y))
                 .setDuration(0)
                 .start();
-        if (player) {
-            calculator.updateByHittingToStriker();
-        }
+//        if (player) {
+//            calculator.updateByHittingToStriker();
+//        }
         posX = x;
         posY = y;
-        isPositionChanged = true;
     }
 
     public boolean isPositionChanged() {
@@ -115,7 +112,9 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
             } break;
                 case MotionEvent.ACTION_MOVE:
             {
-                setPosition(event.getRawX() + dX, event.getRawY() + dY);
+                calculator.setPlayerStrikerPosition(new Pair<Double, Double>((double)calculatePosX(event.getRawX() + dX )+radius,(double)calculatePosY(event.getRawY() + dY)+radius));
+                isPositionChanged = true;
+//                setPosition(event.getRawX() + dX, event.getRawY() + dY);
             } break;
             default:
                 return false;

@@ -305,10 +305,12 @@ public class GameActivity extends AppCompatActivity {
 //            }
             Pair<Integer,Integer> strikerPosition = playerStrikerView.getPosition();
             physicalEventCalculator.move();
-            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
+//            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    Pair<Double,Double> pos = physicalEventCalculator.getPlayerStrikerPosition();
+                    playerStrikerView.setPosition(pos.first.floatValue(),pos.second.floatValue());
                     ballView.setPosition(physicalEventCalculator.getBallState().getPosition().first.floatValue(),physicalEventCalculator.getBallState().getPosition().second.floatValue());
                 }
             });

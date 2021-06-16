@@ -84,7 +84,6 @@ public class PhysicalEventCalculator {
         Pair<Double, Double> curBallPos = currentBallState.getPosition();
         State newState;
         if (isHitToStriker(curStrikerPos, curBallPos)) {
-            Log.e("collision", "here");
             Pair<Double, Double> velocity = calculateVelocityAfterHit();
             double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
             newState = new State(velocity
@@ -193,6 +192,10 @@ public class PhysicalEventCalculator {
             return y > (1 - GOAL_WITH_FACTOR) * yLength;
         }
         return false;
+    }
+
+    public Pair<Double,Double> getPlayerStrikerPosition() {
+        return currentPlayerStrikerState.getPosition();
     }
 
     public State getBallState() {
