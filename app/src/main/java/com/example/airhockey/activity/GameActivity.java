@@ -286,11 +286,11 @@ public class GameActivity extends AppCompatActivity {
             if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
                 break;
             }
-//            if (playerStrikerView.isPositionChanged()) {
-//                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
-//                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
+            if (playerStrikerView.isPositionChanged()) {
+                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
+                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
 //                bluetoothService.write(array);
-//            }
+            }
 //            if (physicalEventCalculator.isGoalScored()){
 //                bluetoothService.write(ProtocolUtils.sendGoalSCored());
 //                waitForSync.set(true);
@@ -305,12 +305,14 @@ public class GameActivity extends AppCompatActivity {
 //            }
             Pair<Integer,Integer> strikerPosition = playerStrikerView.getPosition();
             physicalEventCalculator.move();
-            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
+//            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
                     ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
+                    Pair<Double,Double> pos = physicalEventCalculator.getPlayerStrikerPosition();
+                    playerStrikerView.setPosition(pos.first.floatValue(),pos.second.floatValue());
                 }
             });
             try {

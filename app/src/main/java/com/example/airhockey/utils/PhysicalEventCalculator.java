@@ -195,6 +195,10 @@ public class PhysicalEventCalculator {
         return false;
     }
 
+    public Pair<Double,Double> getPlayerStrikerPosition() {
+        return currentPlayerStrikerState.getPosition();
+    }
+
     public State getBallState() {
         return currentBallState;
     }
