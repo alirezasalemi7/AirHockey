@@ -5,6 +5,7 @@ import android.util.Log;
 import com.example.airhockey.models.Pair;
 import com.example.airhockey.models.State;
 import com.example.airhockey.models.Vector;
+import com.example.airhockey.services.BluetoothService;
 
 
 public class PhysicalEventCalculator {
@@ -12,7 +13,7 @@ public class PhysicalEventCalculator {
     private final int AXIS_Y = 1;
     private final int CORNER = 2;
     private final double GOAL_LENGTH_FACTOR = 0.5;
-    private final double GOAL_WITH_FACTOR = 0.05;
+    private final double GOAL_WITH_FACTOR = 0.04;
     private final int xLength;
     private final int yLength;
     private final double remainedForce = 0.8;
@@ -23,18 +24,31 @@ public class PhysicalEventCalculator {
     private State currentBallState;
     private State prevPlayerStrikerState;
     private State currentPlayerStrikerState;
+    private State initStateBall;
+    private State initStateStriker;
     private final double dt;
     private boolean touched = false;
+    private boolean collision = false;
+
+    private State cloneState(State state) {
+        return new State(new Pair<>(state.getVelocity().first, state.getVelocity().second), new Pair<>(state.getPosition().first, state.getPosition().second));
+    }
 
     public PhysicalEventCalculator(int xLength, int yLength, State initBall, State initStriker, double dt) {
         this.dt = dt;
         this.xLength = xLength;
         this.yLength = yLength;
-        this.prevBallState = initBall;
-        this.currentBallState = new State(initBall.getVelocity(), initBall.getPosition());
-        this.prevPlayerStrikerState = initStriker;
-        this.currentPlayerStrikerState = new State(initStriker.getVelocity(),initStriker.getPosition());
+        initStateBall = initBall;
+        initStateStriker = initStriker;
+        goToInitState();
         Log.e("loc", initBall.getPosition().toString());
+    }
+
+    public void goToInitState(){
+        this.prevBallState = cloneState(initStateBall);
+        this.currentBallState = cloneState(initStateBall);
+        this.prevPlayerStrikerState = cloneState(initStateStriker);
+        this.currentPlayerStrikerState = cloneState(initStateStriker);
     }
 
     public void setRadius(int ballRadius, int strikerRadius) {
@@ -71,7 +85,6 @@ public class PhysicalEventCalculator {
         if (Double.isNaN(position.first) && Double.isNaN(position.second)){
             return;
         }
-        Log.e("phy", position.toString());
         double prevX = prevPlayerStrikerState.getPosition().first;
         double prevY = prevPlayerStrikerState.getPosition().second;
         prevPlayerStrikerState = currentPlayerStrikerState;
@@ -94,12 +107,12 @@ public class PhysicalEventCalculator {
     }
 
     public void move() {
+        collision = false;
         Pair<Double, Double> curStrikerPos = currentPlayerStrikerState.getPosition();
         setPlayerStrikerPosition(curStrikerPos);
         Pair<Double, Double> curBallPos = currentBallState.getPosition();
         State newState;
         if (isHitToStriker(curStrikerPos, curBallPos)) {
-            Log.e("collision", "here");
 //            Pair<Double, Double> velocity = calculateVelocityAfterHit();
 //            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
 //            newState = new State(velocity
@@ -120,8 +133,12 @@ public class PhysicalEventCalculator {
             newState = checkBallCollision();
             prevBallState = currentBallState;
             currentBallState = newState;
-
+            collision = true;
         }
+    }
+
+    public boolean collisionOccur(){
+        return collision;
     }
 
     public void updateByHittingToStriker() {
@@ -129,22 +146,12 @@ public class PhysicalEventCalculator {
         Pair<Double, Double> curBallPos = currentBallState.getPosition();
         Pair<Double, Double> curStrikerPos = currentPlayerStrikerState.getPosition();
         if (isHitToStriker(curStrikerPos, curBallPos)) {
-            Log.e("collision", "here");
-//            Pair<Double, Double> velocity = calculateVelocityAfterHit();
-//            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
-//            newState = new State(velocity
-//                    , new Pair<>((1 - distanceFactor) * curStrikerPos.first + distanceFactor * curBallPos.first
-//                        , (1 - distanceFactor) * curStrikerPos.second + distanceFactor * curBallPos.second));
-//            prevBallState = currentBallState;
-//            currentBallState = newState;
             prevBallState = currentBallState;
             currentBallState = checkBallCollision();
         }
     }
 
     public boolean isHitToStriker(Pair<Double, Double> strikerPos, Pair<Double, Double> ballPos) {
-//        Log.e("loc", strikerPos.toString());
-//        Log.e("loc", ballPos.toString());
         return (strikerRadius + ballRadius) >= findDistance(strikerPos, ballPos);
     }
     
@@ -189,7 +196,6 @@ public class PhysicalEventCalculator {
     public Pair<Double, Double> calculateVelocityAfterHit() {
         Pair<Double, Double> vb = currentBallState.getVelocity();
         Pair<Double, Double> vs = currentPlayerStrikerState.getVelocity();
-        Log.e("velocity", vs.toString());
         return new Pair<>(2 * vs.first - vb.first, 2 * vs.second - vb.second);
     }
 

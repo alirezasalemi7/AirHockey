@@ -13,7 +13,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AirHockey">
-        <activity android:name=".activity.EndGameActivity"></activity>
+        <activity
+            android:name=".activity.EndGameActivity"
+            android:screenOrientation="landscape"></activity>
         <activity
             android:name=".activity.ConnectionActivity"
             android:screenOrientation="landscape"></activity>
@@ -26,7 +28,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activity.GameActivity" />
+        <activity
+            android:name=".activity.GameActivity"
+            android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

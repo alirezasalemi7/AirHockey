@@ -46,7 +46,7 @@ public class GameActivity extends AppCompatActivity {
     ConstraintLayout gameLayout;
     PhysicalEventCalculator physicalEventCalculator;
 
-//    private BluetoothService bluetoothService = BluetoothService.getInstance();
+    private BluetoothService bluetoothService = BluetoothService.getInstance();
     private boolean isPositionChanged = false;
     private LocationConverter converter;
 
@@ -81,7 +81,6 @@ public class GameActivity extends AppCompatActivity {
                         try {
                             rPosition = ProtocolUtils.receivePositionMessage(inputStream);
                             Pair<Integer, Integer> position = converter.reflectPosition(converter.convertToRealPoint(rPosition));
-                            Log.e("test2", "im here");
                             opponentStrikerView.setPosition(position.first.floatValue(), position.second.floatValue());
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -98,7 +97,7 @@ public class GameActivity extends AppCompatActivity {
                             Pair<Double, Double> position = converter.reflectPositionBall(converter.convertToRealPoint(collisionPosition));
                             Pair<Double, Double> speed = converter.reflectSpeed(converter.convertToRealPoint(collisionSpeed));
                             physicalEventCalculator.setBallNewState(position, speed);
-//                            bluetoothService.write(ProtocolUtils.sendBallCollisionAck());
+                            bluetoothService.write(ProtocolUtils.sendBallCollisionAck());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -107,31 +106,45 @@ public class GameActivity extends AppCompatActivity {
                         stopCollisionTimer();
                     }
                     if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_REPORT){
-                        scorePlayer += 1;
-                        Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
-                        setNewPositionForPlayerStriker(width, height);
-                        setNewPositionForOpponentStriker(width, height);
-//                        bluetoothService.write(ProtocolUtils.sendGoalSCoredAck());
-                        if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
-//                            bluetoothService.stopConnection();
-                            goToEndGame();
-                        }
-                        else {
-                            setAfterGoalPositionForBall(true);
+                        try {
+                            scorePlayer = ProtocolUtils.receiveGoalScoredMessage(inputStream);
+                            Log.e("goal", ""+scorePlayer);
+                            Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
+                            setNewPositionForPlayerStriker(width, height);
+                            setNewPositionForOpponentStriker(width, height);
+                            bluetoothService.write(ProtocolUtils.sendGoalScoredAck(scorePlayer));
+                            if (isGameEnded()){
+                                bluetoothService.stopConnection();
+                                goToEndGame();
+                            }
+                            else {
+                                physicalEventCalculator.goToInitState();
+                                setStartPositionForBall();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                     if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_ACK){
-                        stopGoalAckTimer();
-                        waitForSync.set(false);
-                        Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
-                        setNewPositionForPlayerStriker(width, height);
-                        setNewPositionForOpponentStriker(width, height);
-                        if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
-//                            bluetoothService.stopConnection();
-                            goToEndGame();
-                        }
-                        else {
-                            setAfterGoalPositionForBall(false);
+                        try {
+                            Log.e("GOAL", "ack recieved");
+                            stopGoalAckTimer();
+                            scoreOpponent = ProtocolUtils.receiveGoalScoredAckMessage(inputStream);
+                            Toast.makeText(getApplicationContext(), "player " + scorePlayer + " - " + scoreOpponent + " opponent",Toast.LENGTH_LONG).show();
+                            setNewPositionForPlayerStriker(width, height);
+                            setNewPositionForOpponentStriker(width, height);
+                            if (isGameEnded()){
+                                bluetoothService.stopConnection();
+                                waitForSync.set(false);
+                                goToEndGame();
+                            }
+                            else {
+                                physicalEventCalculator.goToInitState();
+                                setStartPositionForBall();
+                                waitForSync.set(false);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                     break;
@@ -147,33 +160,64 @@ public class GameActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    void startGoalAckTimer(){
-        goalAckTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-//                bluetoothService.write(ProtocolUtils.sendGoalSCored());
-                goalAckTimer.schedule(this, TIMEOUT);
+    private class GoalAckTask extends TimerTask {
+
+        @Override
+        public void run() {
+            try {
+                bluetoothService.write(ProtocolUtils.sendGoalScored(scoreOpponent + 1));
+                goalAckTimer.schedule(new GoalAckTask(), TIMEOUT);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        }, TIMEOUT);
+        }
+    }
+
+    void startGoalAckTimer(){
+        try {
+            goalAckTimer.schedule(new GoalAckTask(), TIMEOUT);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     void stopGoalAckTimer(){
-        goalAckTimer.cancel();
+        try {
+            goalAckTimer.cancel();
+            goalAckTimer = new Timer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private class CollisionAckTask extends TimerTask {
+
+        @Override
+        public void run() {
+            try {
+                sendBallCollision();
+                collisionTimer.schedule(new CollisionAckTask(), TIMEOUT);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     void startCollisionTimer(){
-        collisionTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                State ballState = physicalEventCalculator.getBallState();
-//                bluetoothService.write(ProtocolUtils.sendBallCollision(ballState.getPosition(), ballState.getVelocity()));
-                collisionTimer.schedule(this, TIMEOUT);
-            }
-        }, TIMEOUT);
+        try {
+            collisionTimer.schedule(new CollisionAckTask(), TIMEOUT);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     void stopCollisionTimer(){
-        collisionTimer.cancel();
+        try {
+            collisionTimer.cancel();
+            collisionTimer = new Timer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private final Handler bluetoothHandler = new BluetoothHandler();
@@ -185,6 +229,7 @@ public class GameActivity extends AppCompatActivity {
         playerStrikerView = new StrikerView(this, width, height, true);
         playerStrikerView.setOnTouchListener(playerStrikerView);
         setPositionForStriker(playerStrikerView, width, height, true);
+        playerStrikerView.setCalculator(physicalEventCalculator);
     }
 
     void setNewPositionForOpponentStriker(int width, int height) {
@@ -231,28 +276,6 @@ public class GameActivity extends AppCompatActivity {
         set.applyTo(gameLayout);
     }
 
-    void setAfterGoalPositionForBall(boolean playerScored) {
-        if (ballView != null){
-            gameLayout.removeView(ballView);
-        }
-        ballView = new BallView(getApplicationContext(), width, height);
-        float startLocationFactor = 0.6f;
-        ConstraintSet set = new ConstraintSet();
-        ballView.setId(View.generateViewId());
-        gameLayout.addView(ballView, -1);
-        set.clone(gameLayout);
-        if (playerScored) {
-            set.connect(ballView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.BOTTOM, (int) (startLocationFactor * height));
-            set.connect(ballView.getId(), ConstraintSet.BOTTOM, gameLayout.getId(), ConstraintSet.TOP);
-        } else {
-            set.connect(ballView.getId(), ConstraintSet.TOP, gameLayout.getId(), ConstraintSet.BOTTOM);
-            set.connect(ballView.getId(), ConstraintSet.BOTTOM, gameLayout.getId(), ConstraintSet.TOP, (int) (startLocationFactor * height));
-
-        }
-        set.connect(ballView.getId(), ConstraintSet.LEFT, gameLayout.getId(), ConstraintSet.LEFT);
-        set.connect(ballView.getId(), ConstraintSet.RIGHT, gameLayout.getId(), ConstraintSet.RIGHT);
-        set.applyTo(gameLayout);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -263,7 +286,7 @@ public class GameActivity extends AppCompatActivity {
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
-//        bluetoothService.setHandler(bluetoothHandler);
+        bluetoothService.setHandler(bluetoothHandler);
         converter = new LocationConverter(height, width);
         setStartPositionForBall();
         setNewPositionForPlayerStriker(width, height);
@@ -281,35 +304,43 @@ public class GameActivity extends AppCompatActivity {
         gameThread.start();
     }
 
+    void sendBallCollision(){
+        State ballState = physicalEventCalculator.getBallState();
+        Pair<Double,Double> position = converter.convertToFractionalPoint(new Pair<Integer, Integer>(ballState.getPosition().first.intValue(), ballState.getPosition().second.intValue()));
+        Pair<Double,Double> velocity = converter.convertToFractionalPoint(new Pair<Integer, Integer>(ballState.getVelocity().first.intValue(), ballState.getVelocity().second.intValue()));;
+        bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
+    }
+
+    private boolean isGameEnded(){
+        return scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN;
+    }
 
     public void gameLoop() {
         waitForSync.set(false);
         physicalEventCalculator.setRadius(ballView.getRadius(), playerStrikerView.getRadius());
         while (resume) {
             while (waitForSync.get());
-            if (scorePlayer == MAX_SCORE_TO_WIN || scoreOpponent == MAX_SCORE_TO_WIN){
+            if (isGameEnded()){
                 break;
             }
             boolean strikerPositionChanged = playerStrikerView.isPositionChanged();
             if (strikerPositionChanged) {
                 Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
                 byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
-//                bluetoothService.write(array);
+                bluetoothService.write(array);
             }
-//            if (physicalEventCalculator.isGoalScored()){
-//                bluetoothService.write(ProtocolUtils.sendGoalSCored());
-//                waitForSync.set(true);
-//                startGoalAckTimer();
-//                continue;
-//            }
-//            if (physicalEventCalculator.isHitToStriker()){
-//                Pair<Double,Double> position = physicalEventCalculator.getCollisionPositionForBall();
-//                Pair<Double,Double> velocity = physicalEventCalculator.getSpeedOfBallAfterCollision();
-//                bluetoothService.write(ProtocolUtils.sendBallCollision(position,velocity));
-//                startCollisionTimer();
-//            }
+            if (physicalEventCalculator.isGoalScored()){
+                Log.e("GOAL", "here");
+                bluetoothService.write(ProtocolUtils.sendGoalScored(scoreOpponent+1));
+                waitForSync.set(true);
+                startGoalAckTimer();
+                continue;
+            }
             physicalEventCalculator.move();
-//            physicalEventCalculator.setPlayerStrikerPosition(new Pair<>(strikerPosition.first.doubleValue(),strikerPosition.second.doubleValue()));
+            if (physicalEventCalculator.collisionOccur()){
+                sendBallCollision();
+                startCollisionTimer();
+            }
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -317,7 +348,6 @@ public class GameActivity extends AppCompatActivity {
                     playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
                     Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
                     ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
-//                    Log.e("loc", strikerPosition.toString());
                 }
             });
             try {

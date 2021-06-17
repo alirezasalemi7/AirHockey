@@ -17,6 +17,7 @@ import static com.example.airhockey.models.ProtocolConstants.COLLISION_MSG;
 import static com.example.airhockey.models.ProtocolConstants.DOUBLE_PATTERN;
 import static com.example.airhockey.models.ProtocolConstants.END_MSG;
 import static com.example.airhockey.models.ProtocolConstants.GOAL_ACK;
+import static com.example.airhockey.models.ProtocolConstants.GOAL_SCORED;
 import static com.example.airhockey.models.ProtocolConstants.POSITION_MSG;
 import static com.example.airhockey.models.ProtocolConstants.SEP;
 
@@ -43,12 +44,12 @@ public class ProtocolUtils {
         return (COLLISION_ACK + "" + END_MSG).getBytes();
     }
 
-    public static byte[] sendGoalSCoredAck(){
-        return (GOAL_ACK + "" + END_MSG).getBytes();
+    public static byte[] sendGoalScoredAck(float goal){
+        return (GOAL_ACK + "" + goal + END_MSG).getBytes();
     }
 
-    public static byte[] sendGoalSCored(){
-        return (GOAL_ACK + "" + END_MSG).getBytes();
+    public static byte[] sendGoalScored(float goal){
+        return (GOAL_SCORED + "" + goal + END_MSG).getBytes();
     }
 
     public static MessageTypes getTypeOfMessage(InputStream stream){
@@ -60,6 +61,10 @@ public class ProtocolUtils {
                     return MessageTypes.BALL_COLLISION_REPORT;
                 case COLLISION_ACK:
                     return MessageTypes.BALL_COLLISION_ACK;
+                case GOAL_SCORED:
+                    return MessageTypes.GOAL_SCORED_REPORT;
+                case GOAL_ACK:
+                    return MessageTypes.GOAL_SCORED_ACK;
                 default:
                     return MessageTypes.UNKNOWN;
             }
@@ -100,6 +105,30 @@ public class ProtocolUtils {
             inputs[i] = Double.parseDouble(matcher.group());
         }
         return new Pair<>(new Pair<>(inputs[0], inputs[1]),new Pair<>(inputs[2], inputs[3]));
+    }
+
+    static public int receiveGoalScoredMessage(InputStream stream) throws Exception {
+        String message = getString(stream);
+        Matcher matcher = Pattern.compile(DOUBLE_PATTERN).matcher(message);
+        Log.e("msg", message);
+        Double[] inputs = new Double[1];
+        for (int i = 0; i < 1; i++) {
+            if (!matcher.find()) throw new Exception("corrupted message");
+            inputs[i] = Double.parseDouble(matcher.group());
+        }
+        return inputs[0].intValue();
+    }
+
+    static public int receiveGoalScoredAckMessage(InputStream stream) throws Exception {
+        String message = getString(stream);
+        Matcher matcher = Pattern.compile(DOUBLE_PATTERN).matcher(message);
+        Log.e("msg", message);
+        Double[] inputs = new Double[1];
+        for (int i = 0; i < 1; i++) {
+            if (!matcher.find()) throw new Exception("corrupted message");
+            inputs[i] = Double.parseDouble(matcher.group());
+        }
+        return inputs[0].intValue();
     }
 
 }
