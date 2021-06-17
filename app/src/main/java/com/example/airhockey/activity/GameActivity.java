@@ -156,7 +156,7 @@ public class GameActivity extends AppCompatActivity {
         Intent intent = new Intent(getApplicationContext(), EndGameActivity.class);
         intent.putExtra("player_score", scorePlayer);
         intent.putExtra("opponent_score", scoreOpponent);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         startActivity(intent);
     }
 

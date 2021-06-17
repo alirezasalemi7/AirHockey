@@ -27,6 +27,7 @@ public class HomeActivity extends AppCompatActivity {
         playBtn.setOnClickListener((v -> {
 //            TODO: CHANGE IT TO ConnectionActivity
             Intent intent = new Intent(getApplicationContext(), ConnectionActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
             startActivity(intent);
         }));
         Animation animation = new ScaleAnimation(1f, 1.05f, 1f, 1.05f);

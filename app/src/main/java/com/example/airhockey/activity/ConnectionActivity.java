@@ -139,7 +139,7 @@ public class ConnectionActivity extends AppCompatActivity {
                     }
                     if (connected) {
                         Intent intent = new Intent(getApplicationContext(), GameActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                         startActivity(intent);
                     }
                     else {
@@ -188,7 +188,7 @@ public class ConnectionActivity extends AppCompatActivity {
                 }
                 if (connected) {
                     Intent intent = new Intent(getApplicationContext(), GameActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                     startActivity(intent);
                 }
                 else {
