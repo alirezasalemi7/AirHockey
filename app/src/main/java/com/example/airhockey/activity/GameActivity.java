@@ -64,6 +64,20 @@ public class GameActivity extends AppCompatActivity {
     int width;
     int height;
 
+    private class BluetoothConnectionDropHandler extends Handler {
+        public BluetoothConnectionDropHandler() {
+            super();
+        }
+
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            if (msg.what == 0){
+                scorePlayer = MAX_SCORE_TO_WIN;
+                goToEndGame(true);
+            }
+        }
+    }
+
     private class BluetoothHandler extends Handler {
         public BluetoothHandler() {
             super();
@@ -115,7 +129,7 @@ public class GameActivity extends AppCompatActivity {
                             bluetoothService.write(ProtocolUtils.sendGoalScoredAck(scorePlayer));
                             if (isGameEnded()){
                                 bluetoothService.stopConnection();
-                                goToEndGame();
+                                goToEndGame(false);
                             }
                             else {
                                 physicalEventCalculator.goToInitState();
@@ -136,7 +150,7 @@ public class GameActivity extends AppCompatActivity {
                             if (isGameEnded()){
                                 bluetoothService.stopConnection();
                                 waitForSync.set(false);
-                                goToEndGame();
+                                goToEndGame(false);
                             }
                             else {
                                 physicalEventCalculator.goToInitState();
@@ -152,10 +166,11 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    void goToEndGame() {
+    void goToEndGame(boolean drop) {
         Intent intent = new Intent(getApplicationContext(), EndGameActivity.class);
         intent.putExtra("player_score", scorePlayer);
         intent.putExtra("opponent_score", scoreOpponent);
+        intent.putExtra("drop", drop);
         intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         startActivity(intent);
     }
@@ -221,6 +236,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private final Handler bluetoothHandler = new BluetoothHandler();
+    private final BluetoothConnectionDropHandler dropHandler = new BluetoothConnectionDropHandler();
 
     void setNewPositionForPlayerStriker(int width, int height) {
         if (playerStrikerView != null) {
@@ -287,6 +303,7 @@ public class GameActivity extends AppCompatActivity {
         width = metrics.widthPixels;
         height = metrics.heightPixels;
         bluetoothService.setHandler(bluetoothHandler);
+        bluetoothService.setConnectionDropNotifier(dropHandler);
         converter = new LocationConverter(height, width);
         setStartPositionForBall();
         setNewPositionForPlayerStriker(width, height);
@@ -386,6 +403,13 @@ public class GameActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        resume = false;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        bluetoothService.stopConnection();
         resume = false;
     }
 }
