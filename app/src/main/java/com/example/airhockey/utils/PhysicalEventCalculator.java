@@ -25,6 +25,7 @@ public class PhysicalEventCalculator {
     private State currentPlayerStrikerState;
     private final double dt;
     private boolean touched = false;
+    int numberOfTouches = 0;
 
     public PhysicalEventCalculator(int xLength, int yLength, State initBall, State initStriker, double dt) {
         this.dt = dt;
@@ -60,7 +61,7 @@ public class PhysicalEventCalculator {
 
     private Pair<Double, Double> moveWithSteadyVelocity(double dt, Pair<Double, Double> velocity, State state) {
         Pair<Double, Double> curBallPos = state.getPosition();
-        return new Pair<>(curBallPos.first + velocity.first * dt, curBallPos.second + velocity.second * dt);
+        return fixPosition(new Pair<>(curBallPos.first + velocity.first * dt, curBallPos.second + velocity.second * dt));
     }
 
     public void setBallNewState(Pair<Double,Double> position, Pair<Double,Double> velocity){
@@ -90,7 +91,7 @@ public class PhysicalEventCalculator {
         double distanceFactor = (radius1 + radius2) / findDistance(circle1, circle2);
         Pair<Double,Double> newPos = new Pair<>((1 - distanceFactor) * circle2.first + distanceFactor * circle1.first
                 , (1 - distanceFactor) * circle2.second + distanceFactor * circle1.second);
-        return newPos;
+        return fixPosition(newPos);
     }
 
     public void move() {
@@ -99,6 +100,7 @@ public class PhysicalEventCalculator {
         Pair<Double, Double> curBallPos = currentBallState.getPosition();
         State newState;
         if (isHitToStriker(curStrikerPos, curBallPos)) {
+            numberOfTouches = 0;
             Log.e("collision", "here");
 //            Pair<Double, Double> velocity = calculateVelocityAfterHit();
 //            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
@@ -108,9 +110,14 @@ public class PhysicalEventCalculator {
             newState = checkBallCollision();
         } else if (checkHittingToWalls()) {
             this.touched = false;
+            numberOfTouches = 0;
             newState = reflectHittingToSurface();
         } else {
             this.touched = false;
+            if (isRolling()) numberOfTouches++; else numberOfTouches = 0;
+            if (numberOfTouches == 5) {
+                checkRollingOnWalls();
+            }
             Pair<Double, Double> velocity = currentBallState.getVelocity();
             newState = new State(velocity, moveWithSteadyVelocity(dt, velocity, currentBallState));
         }
@@ -121,6 +128,38 @@ public class PhysicalEventCalculator {
             prevBallState = currentBallState;
             currentBallState = newState;
 
+        }
+    }
+
+    public boolean isRolling() {
+        Pair<Double, Double> curBallPos = currentBallState.getPosition();
+        Pair<Double, Double> prevBallPos = prevBallState.getPosition();
+        return (
+                ((curBallPos.first <= ballRadius && prevBallPos.first <= ballRadius)
+                        || (curBallPos.first >= (xLength - ballRadius) && prevBallPos.first >= (xLength - ballRadius)))
+                        && ((int) Math.signum(currentBallState.getVelocity().first) == (int) Math.signum(prevBallState.getVelocity().first))
+        ) || (
+                ((curBallPos.second <= ballRadius && prevBallPos.second <= ballRadius)
+                        || (curBallPos.second >= (yLength - ballRadius) && prevBallPos.second >= (yLength - ballRadius)))
+                        && ((int) Math.signum(currentBallState.getVelocity().first) == (int) Math.signum(prevBallState.getVelocity().first))
+        );
+    }
+
+    public void checkRollingOnWalls() {
+        Pair<Double, Double> curBallPos = currentBallState.getPosition();
+        Pair<Double, Double> prevBallPos = prevBallState.getPosition();
+        if (
+                ((curBallPos.first <= ballRadius && prevBallPos.first <= ballRadius)
+                || (curBallPos.first >= (xLength - ballRadius) && prevBallPos.first >= (xLength - ballRadius)))
+                && ((int) Math.signum(currentBallState.getVelocity().first) == (int) Math.signum(prevBallState.getVelocity().first))
+        ) {
+            currentBallState.setVelocity(new Pair<>(0d, currentBallState.getVelocity().second));
+        } else if (
+                ((curBallPos.second <= ballRadius && prevBallPos.second <= ballRadius)
+                || (curBallPos.second >= (yLength - ballRadius) && prevBallPos.second >= (yLength - ballRadius)))
+                && ((int) Math.signum(currentBallState.getVelocity().first) == (int) Math.signum(prevBallState.getVelocity().first))
+        ) {
+            currentBallState.setVelocity(new Pair<>(currentBallState.getVelocity().first, 0d));
         }
     }
 
@@ -145,6 +184,7 @@ public class PhysicalEventCalculator {
     public boolean isHitToStriker(Pair<Double, Double> strikerPos, Pair<Double, Double> ballPos) {
 //        Log.e("loc", strikerPos.toString());
 //        Log.e("loc", ballPos.toString());
+        double dis = findDistance(strikerPos, ballPos);
         return (strikerRadius + ballRadius) >= findDistance(strikerPos, ballPos);
     }
     
@@ -191,6 +231,18 @@ public class PhysicalEventCalculator {
         Pair<Double, Double> vs = currentPlayerStrikerState.getVelocity();
         Log.e("velocity", vs.toString());
         return new Pair<>(2 * vs.first - vb.first, 2 * vs.second - vb.second);
+    }
+
+    public Pair<Double, Double> fixPosition(Pair<Double, Double> pos) {
+        if (pos.first < ballRadius)
+            pos.first = (double) ballRadius;
+        if (pos.first > (xLength - ballRadius))
+            pos.first = (double) (xLength - ballRadius);
+        if (pos.second < ballRadius)
+            pos.second = (double) ballRadius;
+        if (pos.second > (yLength - ballRadius))
+            pos.second = (double) (yLength - ballRadius);
+        return pos;
     }
 
     public boolean checkHittingToWalls() {
