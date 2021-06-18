@@ -72,6 +72,9 @@ public class GameActivity extends AppCompatActivity {
         @Override
         public void handleMessage(@NonNull Message msg) {
             if (msg.what == 0){
+                if (isGameEnded()){
+                    return;
+                }
                 scorePlayer = MAX_SCORE_TO_WIN;
                 goToEndGame(true);
             }

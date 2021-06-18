@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.view.View;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
@@ -25,11 +26,21 @@ public class HomeActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         playBtn = findViewById(R.id.home_play_btn);
         playBtn.setOnClickListener((v -> {
-//            TODO: CHANGE IT TO ConnectionActivity
             Intent intent = new Intent(getApplicationContext(), ConnectionActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
             startActivity(intent);
         }));
+        playBtn.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                // todo: active logging
+                Toast.makeText(getApplicationContext(), "Logging enabled", Toast.LENGTH_LONG).show();
+                Intent intent = new Intent(getApplicationContext(), ConnectionActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                startActivity(intent);
+                return true;
+            }
+        });
         Animation animation = new ScaleAnimation(1f, 1.05f, 1f, 1.05f);
         animation.setDuration(500);
         animation.setInterpolator(new LinearInterpolator());
