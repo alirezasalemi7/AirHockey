@@ -12,6 +12,7 @@ import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.airhockey.R;
@@ -45,6 +46,8 @@ public class GameActivity extends AppCompatActivity {
     BallView ballView;
     ConstraintLayout gameLayout;
     PhysicalEventCalculator physicalEventCalculator;
+    TextView scorePlayerTextView;
+    TextView scoreOpponentTextView;
 
     private BluetoothService bluetoothService = BluetoothService.getInstance();
     private boolean isPositionChanged = false;
@@ -301,6 +304,8 @@ public class GameActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         gameLayout = findViewById(R.id.board_layout);
+        scoreOpponentTextView = findViewById(R.id.in_game_opponent_score);
+        scorePlayerTextView = findViewById(R.id.in_game_player_score);
         waitForSync = new AtomicBoolean();
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
@@ -364,6 +369,8 @@ public class GameActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    scorePlayerTextView.setText(""+scorePlayer);
+                    scoreOpponentTextView.setText(""+scoreOpponent);
                     Pair<Double,Double> strikerPosition = physicalEventCalculator.getPlayerStrikerPosition();
                     playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
                     Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
