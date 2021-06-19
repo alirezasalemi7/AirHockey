@@ -5,7 +5,6 @@ import android.util.Log;
 import com.example.airhockey.models.Pair;
 import com.example.airhockey.models.State;
 import com.example.airhockey.models.Vector;
-import com.example.airhockey.services.BluetoothService;
 
 
 public class PhysicalEventCalculator {
@@ -67,14 +66,25 @@ public class PhysicalEventCalculator {
             case CORNER:
                 return new State(new Pair<>(-currentBallState.getVelocity().first * remainedForce, -currentBallState.getVelocity().second * remainedForce)
                         , new Pair<>(currentBallState.getPosition().first, currentBallState.getPosition().second));
-//            default: TODO -> Throw error
         }
         return null;
     }
 
+    private Pair<Double, Double> fixLocation(Pair<Double, Double> pos) {
+        if (pos.first <= ballRadius)
+            pos.first = (double) ballRadius;
+        if (pos.first >= (xLength - ballRadius))
+            pos.first = (double) (xLength - ballRadius);
+        if (pos.second <= ballRadius)
+            pos.second = (double) ballRadius;
+        if (pos.second >= (yLength - ballRadius))
+            pos.second = (double) (yLength - ballRadius);
+        return pos;
+    }
+
     private Pair<Double, Double> moveWithSteadyVelocity(double dt, Pair<Double, Double> velocity, State state) {
         Pair<Double, Double> curBallPos = state.getPosition();
-        return new Pair<>(curBallPos.first + velocity.first * dt, curBallPos.second + velocity.second * dt);
+        return fixLocation(new Pair<>(curBallPos.first + velocity.first * dt, curBallPos.second + velocity.second * dt));
     }
 
     public void setBallNewState(Pair<Double,Double> position, Pair<Double,Double> velocity){
@@ -103,7 +113,7 @@ public class PhysicalEventCalculator {
         double distanceFactor = (radius1 + radius2) / findDistance(circle1, circle2);
         Pair<Double,Double> newPos = new Pair<>((1 - distanceFactor) * circle2.first + distanceFactor * circle1.first
                 , (1 - distanceFactor) * circle2.second + distanceFactor * circle1.second);
-        return newPos;
+        return fixLocation(newPos);
     }
 
     public void move() {
@@ -113,11 +123,6 @@ public class PhysicalEventCalculator {
         Pair<Double, Double> curBallPos = currentBallState.getPosition();
         State newState;
         if (isHitToStriker(curStrikerPos, curBallPos)) {
-//            Pair<Double, Double> velocity = calculateVelocityAfterHit();
-//            double distanceFactor = (ballRadius + strikerRadius) / findDistance(curBallPos, curStrikerPos);
-//            newState = new State(velocity
-//                        , new Pair<>((1 - distanceFactor) * curStrikerPos.first + distanceFactor * curBallPos.first
-//                            , (1 - distanceFactor) * curStrikerPos.second + distanceFactor * curBallPos.second));
             newState = checkBallCollision();
         } else if (checkHittingToWalls()) {
             this.touched = false;
@@ -183,8 +188,6 @@ public class PhysicalEventCalculator {
             vn1.scalarMultiply(v1n_a);
             vt1.scalarMultiply(v1t);
             Vector ballNewVelocity = vn2.getAdd(vt2).getScalarMultiply(1.2d);
-//            if (ballNewVelocity.value() > 2)
-//                ballNewVelocity.getUnit().getScalarMultiply(2d);
             Pair<Double,Double> curBallPos = currentBallState.getPosition();
             Pair<Double,Double> curStrikerPos = currentPlayerStrikerState.getPosition();
             Pair<Double,Double> ballNewPos = getTangentPosition(curBallPos, curStrikerPos, ballRadius, strikerRadius);
