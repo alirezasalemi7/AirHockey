@@ -20,6 +20,7 @@ import com.example.airhockey.models.MessageConstants;
 import com.example.airhockey.models.State;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
+import com.example.airhockey.utils.Logger;
 import com.example.airhockey.utils.PhysicalEventCalculator;
 import com.example.airhockey.utils.ProtocolUtils;
 import com.example.airhockey.view.BallView;
@@ -48,7 +49,8 @@ public class GameActivity extends AppCompatActivity {
     PhysicalEventCalculator physicalEventCalculator;
     TextView scorePlayerTextView;
     TextView scoreOpponentTextView;
-
+    Logger logger;
+    int frameCount;
     private BluetoothService bluetoothService = BluetoothService.getInstance();
     private boolean isPositionChanged = false;
     private LocationConverter converter;
@@ -123,6 +125,11 @@ public class GameActivity extends AppCompatActivity {
                         }
                     }
                     if (type == ProtocolUtils.MessageTypes.BALL_COLLISION_ACK){
+                        try {
+                            ProtocolUtils.receiveCollisionAckMessage(inputStream);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         stopCollisionTimer();
                     }
                     if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_REPORT){
@@ -303,6 +310,7 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        logger = Logger.getInstance();
         gameLayout = findViewById(R.id.board_layout);
         scoreOpponentTextView = findViewById(R.id.in_game_opponent_score);
         scorePlayerTextView = findViewById(R.id.in_game_player_score);
@@ -343,7 +351,11 @@ public class GameActivity extends AppCompatActivity {
     public void gameLoop() {
         waitForSync.set(false);
         physicalEventCalculator.setRadius(ballView.getRadius(), playerStrikerView.getRadius());
+        logger.log("GameStart", "game started");
+        frameCount = 0;
         while (resume) {
+            frameCount += 1;
+            ProtocolUtils.setFrame(frameCount);
             while (waitForSync.get());
             if (isGameEnded()){
                 break;
@@ -380,33 +392,6 @@ public class GameActivity extends AppCompatActivity {
             try {
                 Thread.sleep(15);
             } catch (InterruptedException e) {}
-        }
-    }
-
-    public byte[] serialize(Object object) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try {
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-            objectOutputStream.writeObject(object);
-            objectOutputStream.flush();
-            return byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public Object deserialize(byte[] bytes) {
-        try {
-            ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            objectInputStream.read();
-            return objectInputStream.readObject();
-        } catch (StreamCorruptedException e){
-            return null;
-        }
-        catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            return null;
         }
     }
 

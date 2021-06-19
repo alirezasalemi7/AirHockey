@@ -20,6 +20,10 @@ public class LocationConverter {
         return new Pair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
     }
 
+    public Pair<Double, Double> normalize(Pair<Double, Double> realPoint) {
+        return new Pair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
+    }
+
     public Pair<Integer, Integer> reflectPosition(Pair<Integer, Integer> inputPoint) {
         return new Pair<>(width - inputPoint.first, height - inputPoint.second);
     }
