@@ -12,6 +12,7 @@ import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.airhockey.R;
@@ -19,6 +20,7 @@ import com.example.airhockey.models.MessageConstants;
 import com.example.airhockey.models.State;
 import com.example.airhockey.services.BluetoothService;
 import com.example.airhockey.utils.LocationConverter;
+import com.example.airhockey.utils.Logger;
 import com.example.airhockey.utils.PhysicalEventCalculator;
 import com.example.airhockey.utils.ProtocolUtils;
 import com.example.airhockey.view.BallView;
@@ -45,7 +47,10 @@ public class GameActivity extends AppCompatActivity {
     BallView ballView;
     ConstraintLayout gameLayout;
     PhysicalEventCalculator physicalEventCalculator;
-
+    TextView scorePlayerTextView;
+    TextView scoreOpponentTextView;
+    Logger logger;
+    int frameCount;
     private BluetoothService bluetoothService = BluetoothService.getInstance();
     private boolean isPositionChanged = false;
     private LocationConverter converter;
@@ -63,6 +68,23 @@ public class GameActivity extends AppCompatActivity {
     private final int MAX_SCORE_TO_WIN = 7;
     int width;
     int height;
+
+    private class BluetoothConnectionDropHandler extends Handler {
+        public BluetoothConnectionDropHandler() {
+            super();
+        }
+
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            if (msg.what == 0){
+                if (isGameEnded()){
+                    return;
+                }
+                scorePlayer = MAX_SCORE_TO_WIN;
+                goToEndGame(true);
+            }
+        }
+    }
 
     private class BluetoothHandler extends Handler {
         public BluetoothHandler() {
@@ -103,6 +125,11 @@ public class GameActivity extends AppCompatActivity {
                         }
                     }
                     if (type == ProtocolUtils.MessageTypes.BALL_COLLISION_ACK){
+                        try {
+                            ProtocolUtils.receiveCollisionAckMessage(inputStream);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         stopCollisionTimer();
                     }
                     if (type == ProtocolUtils.MessageTypes.GOAL_SCORED_REPORT){
@@ -115,7 +142,7 @@ public class GameActivity extends AppCompatActivity {
                             bluetoothService.write(ProtocolUtils.sendGoalScoredAck(scorePlayer));
                             if (isGameEnded()){
                                 bluetoothService.stopConnection();
-                                goToEndGame();
+                                goToEndGame(false);
                             }
                             else {
                                 physicalEventCalculator.goToInitState();
@@ -136,7 +163,7 @@ public class GameActivity extends AppCompatActivity {
                             if (isGameEnded()){
                                 bluetoothService.stopConnection();
                                 waitForSync.set(false);
-                                goToEndGame();
+                                goToEndGame(false);
                             }
                             else {
                                 physicalEventCalculator.goToInitState();
@@ -152,11 +179,12 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    void goToEndGame() {
+    void goToEndGame(boolean drop) {
         Intent intent = new Intent(getApplicationContext(), EndGameActivity.class);
         intent.putExtra("player_score", scorePlayer);
         intent.putExtra("opponent_score", scoreOpponent);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("drop", drop);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         startActivity(intent);
     }
 
@@ -221,6 +249,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private final Handler bluetoothHandler = new BluetoothHandler();
+    private final BluetoothConnectionDropHandler dropHandler = new BluetoothConnectionDropHandler();
 
     void setNewPositionForPlayerStriker(int width, int height) {
         if (playerStrikerView != null) {
@@ -281,12 +310,16 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        logger = Logger.getInstance();
         gameLayout = findViewById(R.id.board_layout);
+        scoreOpponentTextView = findViewById(R.id.in_game_opponent_score);
+        scorePlayerTextView = findViewById(R.id.in_game_player_score);
         waitForSync = new AtomicBoolean();
         DisplayMetrics metrics = this.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
         bluetoothService.setHandler(bluetoothHandler);
+        bluetoothService.setConnectionDropNotifier(dropHandler);
         converter = new LocationConverter(height, width);
         setStartPositionForBall();
         setNewPositionForPlayerStriker(width, height);
@@ -318,74 +351,61 @@ public class GameActivity extends AppCompatActivity {
     public void gameLoop() {
         waitForSync.set(false);
         physicalEventCalculator.setRadius(ballView.getRadius(), playerStrikerView.getRadius());
+        logger.log("GameStart", "game started");
+        frameCount = 0;
         while (resume) {
-            while (waitForSync.get());
-            if (isGameEnded()){
-                break;
-            }
-            boolean strikerPositionChanged = playerStrikerView.isPositionChanged();
-            if (strikerPositionChanged) {
-                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
-                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
-                bluetoothService.write(array);
-            }
-            if (physicalEventCalculator.isGoalScored()){
-                Log.e("GOAL", "here");
-                bluetoothService.write(ProtocolUtils.sendGoalScored(scoreOpponent+1));
-                waitForSync.set(true);
-                startGoalAckTimer();
-                continue;
-            }
-            physicalEventCalculator.move();
-            if (physicalEventCalculator.collisionOccur()){
-                sendBallCollision();
-                startCollisionTimer();
-            }
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Pair<Double,Double> strikerPosition = physicalEventCalculator.getPlayerStrikerPosition();
-                    playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
-                    Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
-                    ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
+            frameCount += 1;
+            ProtocolUtils.setFrame(frameCount);
+            if (!waitForSync.get()){
+                if (isGameEnded()){
+                    break;
                 }
-            });
+                boolean strikerPositionChanged = playerStrikerView.isPositionChanged();
+                if (strikerPositionChanged) {
+                    Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
+                    byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
+                    bluetoothService.write(array);
+                }
+                if (physicalEventCalculator.isGoalScored()){
+                    Log.e("GOAL", "here");
+                    bluetoothService.write(ProtocolUtils.sendGoalScored(scoreOpponent+1));
+                    waitForSync.set(true);
+                    startGoalAckTimer();
+                    continue;
+                }
+                physicalEventCalculator.move();
+                if (physicalEventCalculator.collisionOccur()){
+                    sendBallCollision();
+                    startCollisionTimer();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        scorePlayerTextView.setText(""+scorePlayer);
+                        scoreOpponentTextView.setText(""+scoreOpponent);
+                        Pair<Double,Double> strikerPosition = physicalEventCalculator.getPlayerStrikerPosition();
+                        playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
+                        Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
+                        ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
+                    }
+                });
+            }
             try {
                 Thread.sleep(15);
             } catch (InterruptedException e) {}
         }
     }
 
-    public byte[] serialize(Object object) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try {
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-            objectOutputStream.writeObject(object);
-            objectOutputStream.flush();
-            return byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public Object deserialize(byte[] bytes) {
-        try {
-            ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(bytes));
-            objectInputStream.read();
-            return objectInputStream.readObject();
-        } catch (StreamCorruptedException e){
-            return null;
-        }
-        catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        resume = false;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        bluetoothService.stopConnection();
         resume = false;
     }
 }
