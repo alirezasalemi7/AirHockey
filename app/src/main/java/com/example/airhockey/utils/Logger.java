@@ -35,6 +35,10 @@ public class Logger {
             Log.e("Logger",""+logFile.createNewFile());
 //            logFile.createNewFile();
         }
+        else {
+            logFile.delete();
+            logFile.createNewFile();
+        }
         writer = new FileWriter(logFile);
         Thread writeThread = new Thread(() -> {
             while (log){
@@ -52,7 +56,7 @@ public class Logger {
     }
 
     public void startLogging(boolean log) throws IOException{
-        if (log){
+        if (log && this.log == false){
             setup();
         }
         this.log = log;

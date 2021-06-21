@@ -356,39 +356,40 @@ public class GameActivity extends AppCompatActivity {
         while (resume) {
             frameCount += 1;
             ProtocolUtils.setFrame(frameCount);
-            while (waitForSync.get());
-            if (isGameEnded()){
-                break;
-            }
-            boolean strikerPositionChanged = playerStrikerView.isPositionChanged();
-            if (strikerPositionChanged) {
-                Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
-                byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
-                bluetoothService.write(array);
-            }
-            if (physicalEventCalculator.isGoalScored()){
-                Log.e("GOAL", "here");
-                bluetoothService.write(ProtocolUtils.sendGoalScored(scoreOpponent+1));
-                waitForSync.set(true);
-                startGoalAckTimer();
-                continue;
-            }
-            physicalEventCalculator.move();
-            if (physicalEventCalculator.collisionOccur()){
-                sendBallCollision();
-                startCollisionTimer();
-            }
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    scorePlayerTextView.setText(""+scorePlayer);
-                    scoreOpponentTextView.setText(""+scoreOpponent);
-                    Pair<Double,Double> strikerPosition = physicalEventCalculator.getPlayerStrikerPosition();
-                    playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
-                    Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
-                    ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
+            if (!waitForSync.get()){
+                if (isGameEnded()){
+                    break;
                 }
-            });
+                boolean strikerPositionChanged = playerStrikerView.isPositionChanged();
+                if (strikerPositionChanged) {
+                    Pair<Double,Double> currentPoint = converter.convertToFractionalPoint(playerStrikerView.getPosition());
+                    byte[] array = ProtocolUtils.sendStrikerPosition(currentPoint);
+                    bluetoothService.write(array);
+                }
+                if (physicalEventCalculator.isGoalScored()){
+                    Log.e("GOAL", "here");
+                    bluetoothService.write(ProtocolUtils.sendGoalScored(scoreOpponent+1));
+                    waitForSync.set(true);
+                    startGoalAckTimer();
+                    continue;
+                }
+                physicalEventCalculator.move();
+                if (physicalEventCalculator.collisionOccur()){
+                    sendBallCollision();
+                    startCollisionTimer();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        scorePlayerTextView.setText(""+scorePlayer);
+                        scoreOpponentTextView.setText(""+scoreOpponent);
+                        Pair<Double,Double> strikerPosition = physicalEventCalculator.getPlayerStrikerPosition();
+                        playerStrikerView.setPosition(strikerPosition.first.floatValue(),strikerPosition.second.floatValue());
+                        Pair<Double, Double> ballPos = physicalEventCalculator.getBallState().getPosition();
+                        ballView.setPosition(ballPos.first.floatValue(), ballPos.second.floatValue());
+                    }
+                });
+            }
             try {
                 Thread.sleep(15);
             } catch (InterruptedException e) {}
