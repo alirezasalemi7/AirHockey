@@ -113,7 +113,6 @@ public class ConnectionActivity extends AppCompatActivity {
         ListView listView = view.findViewById(R.id.bluetooth_devices);
         listView.setOnItemClickListener((parent, view1, position, id) -> {
             if (foundDevicesNames != null){
-                Toast.makeText(getApplicationContext(), "clicked", Toast.LENGTH_LONG).show();
                 progressDialogClient.setTitle("connecting to opponent");
                 progressDialogClient.setMessage("Waiting for opponent to connect...");
                 progressDialogClient.setCancelable(true); // disable dismiss by tapping outside of the dialog
@@ -171,7 +170,6 @@ public class ConnectionActivity extends AppCompatActivity {
         });
 
         serverBtn.setOnClickListener(v -> {
-            Toast.makeText(getApplicationContext(), "clicked", Toast.LENGTH_LONG).show();
             progressDialogServer.setTitle("Waiting for opponent");
             progressDialogServer.setMessage("Waiting for clients to connect...");
             progressDialogServer.setCancelable(true); // disable dismiss by tapping outside of the dialog
