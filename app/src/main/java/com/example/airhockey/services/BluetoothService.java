@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.os.Message;
 import android.os.Handler;
+import android.util.Log;
 
 import com.example.airhockey.models.ConnectionStates;
 import com.example.airhockey.models.MessageConstants;
@@ -20,6 +21,7 @@ public class BluetoothService {
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothSocket transferSocket;
     private Handler handler;
+    private Handler connectionDropNotifier;
     private int currentState;
 
     private AcceptThread acceptThread;
@@ -43,6 +45,10 @@ public class BluetoothService {
 
     public void setHandler(Handler handler) {
         this.handler = handler;
+    }
+
+    public void setConnectionDropNotifier(Handler handler){
+        this.connectionDropNotifier = handler;
     }
 
     public void write(byte[] data) {
@@ -223,12 +229,21 @@ public class BluetoothService {
         public void run() {
             buffer = new byte[BUFFER_LENGTH];
             int numberOfBytes;
+            int dropCount = 0;
             while (currentState == ConnectionStates.STATE_CONNECTED) {
                 try {
                     numberOfBytes = inputStream.read(buffer);
                     Message readMessage = handler.obtainMessage(MessageConstants.MESSAGE_READ, numberOfBytes, -1, buffer);
                     readMessage.sendToTarget();
                 } catch (IOException e) {
+                    if (e.getMessage().equals("bt socket closed, read return: -1")){
+                        Log.e("BLUETOOTH", "connection dropped");
+                        dropCount += 1;
+                        if (dropCount > 1){
+                            connectionDropNotifier.sendEmptyMessage(0);
+                            break;
+                        }
+                    }
                     e.printStackTrace();
                 }
             }

@@ -2,7 +2,6 @@ package com.example.airhockey.view;
 
 import android.content.Context;
 import android.util.Log;
-import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -10,7 +9,8 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 
 import com.example.airhockey.R;
-import com.example.airhockey.utils.SerializablePair;
+import com.example.airhockey.models.Pair;
+import com.example.airhockey.utils.PhysicalEventCalculator;
 
 public class StrikerView extends androidx.appcompat.widget.AppCompatImageView implements View.OnTouchListener {
 
@@ -21,9 +21,11 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
     private float posX,posY;
     private boolean player;
     private boolean isPositionChanged = false;
+    private PhysicalEventCalculator calculator;
 
     public StrikerView(@NonNull Context context, int width, int height, boolean player) {
         super(context);
+
         if (player){
             this.setImageResource(R.drawable.img_player);
         }
@@ -39,6 +41,10 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         Log.i("sizeX", ""+width);
         Log.i("sizeY", ""+height);
 
+    }
+
+    public void setCalculator(PhysicalEventCalculator calculator) {
+        this.calculator = calculator;
     }
 
     private float calculatePosX(float x){
@@ -68,18 +74,21 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
     }
 
     public void setPosition(float x, float y){
-        if (!player){
-            x = x - 2 * radius;
-            y = y - 2 * radius;
+        if (Float.isNaN(x) || Float.isNaN(y)){
+            return;
         }
+        x = x - 1 * radius;
+        y = y - 1 * radius;
         this.animate()
                 .x(calculatePosX(x))
                 .y(calculatePosY(y))
                 .setDuration(0)
                 .start();
+//        if (player) {
+//            calculator.updateByHittingToStriker();
+//        }
         posX = x;
         posY = y;
-        isPositionChanged = true;
     }
 
     public boolean isPositionChanged() {
@@ -88,8 +97,8 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
         return temp;
     }
 
-    public SerializablePair<Integer, Integer> getPosition() {
-        return new SerializablePair<>((int) posX, (int) posY);
+    public Pair<Integer, Integer> getPosition() {
+        return new Pair<>((int) (posX + radius), (int) (posY + radius));
     }
 
     @Override
@@ -106,11 +115,28 @@ public class StrikerView extends androidx.appcompat.widget.AppCompatImageView im
             } break;
                 case MotionEvent.ACTION_MOVE:
             {
-                setPosition(event.getRawX() + dX, event.getRawY() + dY);
+                float y = event.getRawY();
+                float x = event.getRawX();
+                if (!Float.isNaN(x+dX) && !Float.isNaN(y+dY)){
+                    calculator.setPlayerStrikerPosition(new Pair<Double, Double>((double)calculatePosX(x + dX )+radius,(double)calculatePosY(y + dY)+radius));
+                }
+                else {
+                    this.setOnTouchListener(null);
+                    this.setOnTouchListener(this::onTouch);
+                }
+                isPositionChanged = true;
             } break;
             default:
                 return false;
         }
         return true;
+    }
+
+    public Pair<Double, Double> getPositionStart() {
+        return new Pair<>((double) (this.getX() + radius), (double) (this.getY() + radius));
+    }
+
+    public int getRadius() {
+        return radius;
     }
 }

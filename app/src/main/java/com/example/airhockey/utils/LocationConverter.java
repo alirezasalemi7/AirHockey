@@ -1,7 +1,7 @@
 package com.example.airhockey.utils;
 
 
-import android.util.Pair;
+import com.example.airhockey.models.Pair;
 
 public class LocationConverter {
     private int height;
@@ -12,17 +12,30 @@ public class LocationConverter {
         this.width = width;
     }
 
-    public SerializablePair<Integer, Integer> convertToRealPoint(SerializablePair<Double, Double> fractionalPoint) {
-        return new SerializablePair<>((int) (fractionalPoint.first * width), (int) (fractionalPoint.second * height));
+    public Pair<Integer, Integer> convertToRealPoint(Pair<Double, Double> fractionalPoint) {
+        return new Pair<>((int) (fractionalPoint.first * width), (int) (fractionalPoint.second * height));
     }
 
-    public SerializablePair<Double, Double> convertToFractionalPoint(SerializablePair<Integer, Integer> realPoint) {
-        return new SerializablePair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
+    public Pair<Double, Double> convertToFractionalPoint(Pair<Integer, Integer> realPoint) {
+        return new Pair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
     }
 
-    public SerializablePair<Integer, Integer> reflect(SerializablePair<Integer, Integer> inputPoint) {
-        return new SerializablePair<>(width - inputPoint.first, height - inputPoint.second);
+    public Pair<Double, Double> normalize(Pair<Double, Double> realPoint) {
+        return new Pair<>(realPoint.first.doubleValue() / width, realPoint.second.doubleValue() / height);
     }
 
+    public Pair<Integer, Integer> reflectPosition(Pair<Integer, Integer> inputPoint) {
+        return new Pair<>(width - inputPoint.first, height - inputPoint.second);
+    }
+
+    public Pair<Double, Double> reflectPositionBall(Pair<Integer, Integer> inputPoint) {
+        Pair<Integer, Integer> pos = reflectPosition(inputPoint);
+        return new Pair<>((double) pos.first, (double) pos.second);
+    }
+
+
+    public Pair<Double, Double> reflectSpeed(Pair<Integer, Integer> inputPoint) {
+        return new Pair<>((double)-inputPoint.first,(double) -inputPoint.second);
+    }
 
 }

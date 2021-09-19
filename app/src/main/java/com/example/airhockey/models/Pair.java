@@ -1,20 +1,20 @@
-package com.example.airhockey.utils;
+package com.example.airhockey.models;
 
 import java.io.Serializable;
 
-public class SerializablePair<T,V> implements Serializable {
+public class Pair<T,V> implements Serializable {
 
     public T first;
     public V second;
 
-    public SerializablePair(T first,V second){
+    public Pair(T first, V second){
         this.first = first;
         this.second = second;
     }
 
     @Override
     public String toString() {
-        return "SerializablePair{first=" + first +
+        return "Pair{first=" + first +
                 ", second=" + second + '}';
     }
 }
